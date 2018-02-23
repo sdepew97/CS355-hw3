@@ -5,7 +5,14 @@
 #ifndef _REENTRANT
 #define _REENTRANT
 
-int parse(job *current_job);
+#include "shell.h"
+
+int parse();
+
+typedef struct tokenizer {
+	char *str;
+	char *pos;
+} tokenizer;
 
 #endif
 #endif
