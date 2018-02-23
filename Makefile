@@ -1,24 +1,11 @@
-all: shell
+src = $(filter-out linked_list, $(wildcard *.c))
+obj = $(src:.c=.o)
 
-shell: shell.o llist.o llist_node.o
-    gcc -g -o $@ $^ -Wall -lcheck
+# LDFLAGS = -lGL -lglut -lpng -lz -lm
 
-check_llist_node: check_llist_node.o llist_node.o
-    gcc -g -o $@ $^ -Wall -lcheck
+shell: $(obj)
+	$(CC) -lreadline -Wall -o $@ $^ $(LDFLAGS)
 
-check_llist: check_llist.o llist.o llist_node.o
-    gcc -g -o $@ $^ -Wall -lcheck
-
-shell.o: shell.c shell.h llist.h llist_node.h
-    gcc -c -Wall shell.c
-
-llist.o: llist.h llist_node.h
-    gcc -c -Wall llist.c
-
+.PHONY: clean
 clean:
-    rm -rf *.o *.gch *.dSYM shell\ *
-
-.PHONY: all
-
-# this next line prevents `make` from deleting the .o files
-.SECONDARY:
+	rm -f $(obj) shell
