@@ -6,6 +6,7 @@
 #define _REENTRANT
 
 #include "shell.h"
+#include "builtins.h"
 
 int parse();
 

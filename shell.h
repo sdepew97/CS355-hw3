@@ -12,7 +12,6 @@
 
 #define BUFFERSIZE 4096
 #define EXIT 0
-#define NUMBER_OF_BUILT_IN_FUNCTIONS 5
 #define RUNNING 1
 #define STOPPED 2
 
@@ -45,25 +44,30 @@ void printPrompt();
 /* make structs for built in commands */
 void buildBuiltIns();
 
-/* takes char ** and returns struct array of delimited commands in “command field”, ie *“vim test.py& blah ;” creates array of two command structs. The first has fields *command_string = “vim test.py” tokenized_command = NULL run_in_background = TRUE  and *second command_string = “blah” tokenized_command = “blah” run_in_background = FALSE.  Returns -1 on failure otherwise return 1 on success. */
-int readCommandLine(char ***commands);
+/* takes char ** and returns struct array of delimited commands in “command field”, ie *“vim test.py& blah ;”
+ * creates array of two command structs. The first has fields *command_string = “vim test.py” tokenized_
+ * command = NULL run_in_background = TRUE  and *second command_string = “blah” tokenized_command = “blah”
+ * run_in_background = FALSE.  Returns -1 on failure otherwise return 1 on success. */
+int readCommandLine(char **commands);
 
-/* parses through each command and for every command tokenizes the command string */ 
-int tokenizeCommands(char ***commands);
+///* parses through each command and for every command tokenizes the command string */
+//int tokenizeCommands(char ***commands);
 
 /* Frees commands and displays error message */
-void handleError(char* message, char ***commands);
+void handleError(char* message, char **commands);
 
-/* Method that takes a command pointer and checks if the command is a background or foreground job. This method returns 0 if foreground and 1 if background */
-int isBackgroundJob(process* prcs);
+/* Method that takes a command pointer and checks if the command is a background or foreground job.
+ * This method returns 0 if foreground and 1 if background */
+int isBackgroundJob(job* job1);
 
-/* child process has terminated and so we need to remove the process from the linked list (by pid). We would call this function in the signal handler when getting a SIGCHLD signal. */
+/* child process has terminated and so we need to remove the process from the linked list (by pid).
+ * We would call this function in the signal handler when getting a SIGCHLD signal. */
 void childReturning(int sig, siginfo_t *siginfo, void *context);
 
 /* background running process*/
 void suspendProcessInBackground(int sig, siginfo_t *siginfo, void *context);
 
-/* This method is simply the remove node method called when a node needs to be removed from the LL. */
+/* This method is simply the remove node method called when a node needs to be removed from the list of jobs. */
 void removeNode(pid_t pidToRemove);
 
 /* Passes in the command to check. Returns the index of the built-in command if it’s in the array of built-in commands and -1 if it is not in the array allBuiltIns */
