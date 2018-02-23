@@ -42,3 +42,22 @@ int main (int argc, char **argv) {
     // printf("%s \n", first_job.first_process -> args[0]);
     return 0;  
 }
+
+/* print the prompt to the command line */
+void printPrompt() {
+    printf(">>");
+}
+
+/* make structs for built in commands */
+void buildBuiltIns() {
+    for(int i=0; i<NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
+        allBuiltIns[0].tag =
+    }
+}
+
+//Structs
+typedef struct builtin
+{
+    char* tag;
+    Operation function;
+} builtin;

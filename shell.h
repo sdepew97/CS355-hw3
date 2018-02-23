@@ -18,15 +18,6 @@
 int shell; // shell fd
 pid_t shell_pgid; // shell process group
 
-typedef int (*Operation)(char**);
-
-//Structs
-typedef struct builtin
-{
-    char* tag;
-    Operation function;
-} builtin;
-
 //we can add more flags for future command expansion
 typedef struct process {
     struct process *next_process;
@@ -35,7 +26,7 @@ typedef struct process {
     int status;
 } process;
 
-typedef struct job {
+typedef struct job {i
     struct process *first_process;
     pid_t pgid;
     char *job_string;
