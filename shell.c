@@ -20,9 +20,9 @@ char *jobs = "jobs\0";
 char *fg = "fg\0";
 char *bg = "bg\0";
 char **builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS] = {ext, kill, jobs, fg, bg};
-//operation *operations[NUMBER_OF_BUILT_IN_FUNCTIONS] = {ext, kill, jobs, foreground, background};
+operation *operations[NUMBER_OF_BUILT_IN_FUNCTIONS] = {ext, kill, jobs, foreground, background};
 
-builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
+struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
 
 /* Main method and body of the function. */
 int main (int argc, char **argv) {
@@ -39,13 +39,15 @@ int main (int argc, char **argv) {
         break;
     }
 
-    readCommandLine(argv);
+    /* use case example to get second token */
+    /* NOTE EXAMPLE HARDCODED INTO parse.c b/ memory leaks w/ readline */
+    int rib = all_jobs->run_in_background;
+    printf("%d \n", rib);
 
     /* free memory for all_jobs -- should be called after every prompt */
     free_all_jobs();
 
-    // printf("%s \n", first_job.first_process -> args[0]);
-    return 0;  
+    return 0;
 }
 
 /* print the prompt to the command line */
@@ -57,17 +59,24 @@ void printPrompt() {
 void buildBuiltIns() {
     for(int i=0; i<NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
         allBuiltIns[i].tag = builtInTags[i];
+
     }
 }
 
 int readCommandLine(char **commands) {
     /* use case example to get second token */
     /* NOTE EXAMPLE HARDCODED INTO parse.c b/ memory leaks w/ readline */
-    int rib = all_jobs->run_in_background;
-    printf("%d \n", rib);
+    int number_jobs = parse();
+    char **targs = all_jobs->first_process->args;
+    int c = 0;
+    while (targs[c] != NULL) {
+        printf("%s\n", targs[c]);
+        c++;
+    }
 
     return number_jobs;
 }
+
 
 /* Frees commands and displays error message */
 void handleError(char* message, char **commands) {
