@@ -79,8 +79,10 @@ char *get_next_token()
 			t->pos++;
 		}
 		if (strncmp(t->pos, "\0", 1) == 0) { t->pos--, count--; }
-		token = malloc(count + 1);
+		printf("%d \n", count);
+		token = malloc(sizeof(char*) * (count + 1));
 		t->pos -= count;
+		printf("%d \n", count);
 		for (int i = 0; i <= count; i++) {
 			token[i] = *(t->pos);
 			t->pos++;
@@ -113,22 +115,15 @@ int parse(job *current_job)
 
 	char *token;
 	char **tokenized_process;
-	int number_processes_in_job = 0;
+	int num_jobs = 0;
 
 	// process *cur_process = current_job->first_process;
 		
-	while((token = get_next_token()) != NULL) {
-		if (token == NULL) {
-			// cur_process = NULL;
-		}
-		else {
-			// split_white_space(&token, &tokenized_process);
-			// cur_process->args = tokenized_process;
-			// process *next;
-			// cur_process->next_process = next;
-		}
-		printf("%s \n", token);
-	}
+	// while((token = get_next_token()) != NULL) {
+	// 	num_jobs++;
+	// }
+
+	printf("%d \n", num_jobs);
 
 	return 1;
 }

@@ -2,14 +2,11 @@
 // Created by Sarah Depew on 2/22/18.
 //
 
-#ifndef HW3_SHELL_H
-#define HW3_SHELL_H
+#ifndef SHELL_H_
+#define SHELL_H_
 
 #include <sys/termios.h>
 #include <sys/param.h>
-
-#ifndef _REENTRANT
-#define _REENTRANT
 
 #define BUFFERSIZE 4096
 #define EXIT 0
@@ -123,4 +120,3 @@ void initializeShell();
     */
 
 #endif //HW3_SHELL_H
-#endif

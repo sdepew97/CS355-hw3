@@ -1,13 +1,12 @@
 #include <zconf.h>
 #include <sys/wait.h>
-#include "shell.h"
-#include "parser.h"
 #include <stdio.h>
 // #include "llist.h"
 // #include "llist_node.h"
+#include "shell.h"
+// #include "parser.h" 
 
-void initializeShell() { }
-void buildBuiltIns() { }
+void initializeShell() {}
 
 /* Main method and body of the function. */
 int main (int argc, char **argv) {
@@ -27,8 +26,8 @@ int main (int argc, char **argv) {
 
     job first_job;
     // first_job.first_process = fp;
-    parse(&first_job);
+    // int i = parse(&first_job);
 
     // printf("%s \n", first_job.first_process -> args[0]);
-    return 0;
+    return 0;  
 }
