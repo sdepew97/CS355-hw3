@@ -2,6 +2,7 @@
 #include <sys/wait.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "boolean.h"
 // #include "llist.h"
 // #include "llist_node.h"
@@ -14,13 +15,13 @@ job *all_jobs = NULL;
 void free_all_jobs();
 
 //strings for built in functions
-char *ext = "exit\0";
-char *kill = "kill\0";
-char *jobs = "jobs\0";
-char *fg = "fg\0";
-char *bg = "bg\0";
-char **builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS] = {ext, kill, jobs, fg, bg};
-operation *operations[NUMBER_OF_BUILT_IN_FUNCTIONS] = {ext, kill, jobs, foreground, background};
+char *exit_string = "exit\0";
+char *kill_string = "kill\0";
+char *jobs_string = "jobs\0";
+char *fg_string = "fg\0";
+char *bg_string = "bg\0";
+
+char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS];
 
 struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
 
@@ -57,9 +58,22 @@ void printPrompt() {
 
 /* make structs for built in commands */
 void buildBuiltIns() {
-    for(int i=0; i<NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
+    char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS] = {exit_string, kill_string, jobs_string, fg_string, bg_string};
+
+    for (int i = 0; i < NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
         allBuiltIns[i].tag = builtInTags[i];
 
+        if (i == 0) {
+            allBuiltIns[i].function = exit_builtin;
+        } else if (i == 1) {
+            allBuiltIns[i].function = kill_builtin;
+        } else if (i == 2) {
+            allBuiltIns[i].function = jobs_builtin;
+        } else if (i == 3) {
+            allBuiltIns[i].function = foreground_builtin;
+        } else {
+            allBuiltIns[i].function = background_builtin;
+        }
     }
 }
 
@@ -79,8 +93,11 @@ int readCommandLine(char **commands) {
 
 
 /* Frees commands and displays error message */
-void handleError(char* message, char **commands) {
-    printf("%s, %s", message, commands); //something like "I am sorry, but the input string is invalid"
+void handleError(char* message, char **commands, int numCommands) {
+    printf("%s", message);
+    for(int i=0; i<numCommands; i++) {
+        printf("%s ", commands[i]); //something like "I am sorry, but the input string is invalid"
+    }
 }
 
 /* Method that takes a command pointer and checks if the command is a background or foreground job.
@@ -135,5 +152,47 @@ void removeNode(pid_t pidToRemove) {
  * built-in commands and -1 if it is not in the array allBuiltIns
  */
 int isBuiltInCommand(process cmd) {
-
+    for(int i=0; i<NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
+        if(process_equals(cmd, allBuiltIns[i])) {
+            return TRUE;
+        }
+    }
+    return FALSE;
 }
+
+int process_equals(process process1, builtin builtin1) {
+    int compare_value = strcmp(process1.args[0], builtin1.tag);
+    if (compare_value == FALSE) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
+
+//TODO: Implement all built in functions to use in the program
+/*Method that exits the shell. This command sets the global EXIT variable that breaks out of the while loop in the main function.*/
+int exit_builtin(char** args) {
+    return 0;
+}
+
+/* Method to iterate through the linked list and print out node parameters. */
+int jobs_builtin(char** args) {
+    return 0;
+}
+
+/* Method to take a job id and send a SIGTERM to terminate the process.*/
+int kill_builtin(char** args) {
+    return 0;
+}
+
+/* Method that sends continue signal to suspended process in background -- this is bg*/
+int background_builtin(char** args) {
+    return 0;
+}
+
+/* Method that uses tcsetpgrp() to foreground the process -- this is fg*/
+int foreground_builtin(char** args) {
+    return 0;
+}
+

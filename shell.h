@@ -14,9 +14,17 @@
 #define EXIT 0
 #define RUNNING 1
 #define STOPPED 2
+#define NUMBER_OF_BUILT_IN_FUNCTIONS 5
 
 int shell; // shell fd
 pid_t shell_pgid; // shell process group
+typedef int (*operation)(char**);
+
+//Structs
+typedef struct builtin {
+    char *tag;
+    operation function;
+} builtin;
 
 //we can add more flags for future command expansion
 typedef struct process {
@@ -54,7 +62,7 @@ int readCommandLine(char **commands);
 //int tokenizeCommands(char ***commands);
 
 /* Frees commands and displays error message */
-void handleError(char* message, char **commands);
+void handleError(char* message, char **commands, int numCommands);
 
 /* Method that takes a command pointer and checks if the command is a background or foreground job.
  * This method returns 0 if foreground and 1 if background */
@@ -73,6 +81,9 @@ void removeNode(pid_t pidToRemove);
 /* Passes in the command to check. Returns the index of the built-in command if it’s in the array of built-in commands and -1 if it is not in the array allBuiltIns */
 int isBuiltInCommand(process cmd);
 
+/* Compares a process and a built in by name and determines if they are equal or not. */
+int process_equals(process process1, builtin builtin1);
+
 /* Passes in the built-in command to be executed along with the index of the command in the allBuiltIns array. This method returns true upon success and false upon failure/error. */
 int executeBuiltInCommand(process cmd, int index);
 
@@ -82,5 +93,22 @@ void launchProcess(process *command, pid_t pgid, int foreground);
 /* Method to make sure the shell is running interactively as the foreground job before proceeding. Modeled after method found on https://www.gnu.org/software/libc/manual/html_mono/libc.html#Foreground-and-Background. */
 void initializeShell();
 
+/* iterates through LL and returns true if there are >= nodes as pnum */
+int processExists(int pnum);
+
+/*Method that exits the shell. This command sets the global EXIT variable that breaks out of the while loop in the main function.*/
+int exit_builtin(char** args);
+
+/* Method to iterate through the linked list and print out node parameters. */
+int jobs_builtin(char** args);
+
+/* Method to take a job id and send a SIGTERM to terminate the process.*/
+int kill_builtin(char** args);
+
+/* Method that sends continue signal to suspended process in background -- this is bg*/
+int background_builtin(char** args);
+
+/* Method that uses tcsetpgrp() to foreground the process -- this is fg*/
+int foreground_builtin(char** args);
 
 #endif //HW3_SHELL_H
