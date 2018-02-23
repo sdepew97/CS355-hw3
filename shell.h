@@ -5,12 +5,16 @@
 #ifndef HW3_SHELL_H
 #define HW3_SHELL_H
 
+#include <sys/termios.h>
+#include <sys/param.h>
+
 #ifndef _REENTRANT
 #define _REENTRANT
 
-#DEFINE BUFFERSIZE 4096
-#DEFINE NUM BUILTINS
-#DEFINE EXIT 0
+#define BUFFERSIZE 4096
+#define NUM BUILTINS
+#define EXIT 0
+#define NUMBER_OF_BUILT_IN_FUNCTIONS 5
 
 int shell; // shell fd
 pid_t shell_pgid; // shell process group
@@ -33,45 +37,20 @@ typedef struct process
     int run_in_background;
 } process;
 
-typedef struct node_information
-{
-    termios termios;
-    pid_t pgid;
-    char *commandLineStarted;
-    char *status; //running, suspended, stopped
-} node_information;
-
-typedef struct llist_node
-{
-    node_information data;  // the data stored in this node that will be printed in jobs, if needed
-    struct llist_node* next; // pointer to next node
-} llist_node;
-
-typedef struct node //node for the linked list
-{
-    char* tag;
-    Operation function;
-} builtin;
-
 builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
 
 /* print the prompt to the command line */
-void printPrompt()
-{
+void printPrompt();
     //choose a prompt to print with printf()
-}
 
 /* make structs for built in commands */
-void builtBuiltIns()
-{
+void builtBuiltIns();
 //initialize all commands here
-}
 
 /* takes char ** and returns struct array of delimited commands in “command field”, ie *“vim test.py& blah ;” creates array of two command structs. The first has fields *command_string = “vim test.py” tokenized_command = NULL run_in_background = TRUE  and *second command_string = “blah” tokenized_command = “blah” run_in_background = FALSE.  Returns -1 on failure otherwise return 1 on success. */
-int readCommandLine(char ***commands)
-{
+int readCommandLine(char ***commands);
     // this is going to require some work with malloc
-}
+
 
 /* parses through each command and for every command tokenizes the command string
 * i.e. takes “vim test.py” in command_string field and creates [“vim”, “test.py”] in tokenized_comand field. We will use separation by whitespace to separate commands. Returns -1 on failure and returns 1 on success. */
@@ -81,49 +60,41 @@ int  tokenizeCommands(char ***commands);
 void handleError(char* message, char ***commands);
 
 /* Method that takes a command pointer and checks if the command is a background or foreground job. This method returns 0 if foreground and 1 if background */
-int isBackgroundJob(struct command* command)
+int isBackgroundJob(process* prcs);
 
 /* child process has terminated and so we need to remove the process from the linked list (by pid). We would call this function in the signal handler when getting a SIGCHLD signal. */
-        void childReturning(int sig, siginfo_t *siginfo, void *context) {
+        void childReturning(int sig, siginfo_t *siginfo, void *context);
 // sigproc mask to block SIGTSTP
 // delete LL node
-}
 
 /* background running process*/
-void suspendProcessInBackground(int sig, siginfo_t *siginfo, void *context)
-{
+void suspendProcessInBackground(int sig, siginfo_t *siginfo, void *context);
 // raise sigstop
 // sigprocmask to block SIGCHILD
 // update LL
 // give foreground back to terminal
-}
 
 /* This method is simply the remove node method called when a node needs to be removed from the LL. */
-void removeNode(pid_t pidToRemove)
-{
+void removeNode(pid_t pidToRemove);
     //iterate through LL and remove the node with the pid of the argument passed in
-}
 
 /* Passes in the command to check. Returns the index of the built-in command if it’s in the array of built-in commands and -1 if it is not in the array allBuiltIns */
-int isBuiltInCommand(command cmd);
+int isBuiltInCommand(process cmd);
 
 /* Passes in the built-in command to be executed along with the index of the command in the allBuiltIns array. This method returns true upon success and false upon failure/error. */
-int executeBuiltInCommand(command cmd, int index)
+int executeBuiltInCommand(process cmd, int index);
 
 /* Method to launch our process in either the foreground or the background. */
-        void launchProcess(command *command, pid_t pgid, int foreground)
-{
+        void launchProcess(process *command, pid_t pgid, int foreground);
     // put process into its own process group, which is the pid of the process
     //procmask SIGCHLD and then add node to LL
     // if foreground: tcsteprgr(shell, pgid)
     // Reset the defaults for signal handling
     // Register SIGTSTP handler
 /* Execvp the new process.  Make sure we exit.  */
-}
 
 /* Method to make sure the shell is running interactively as the foreground job before proceeding. Modeled after method found on https://www.gnu.org/software/libc/manual/html_mono/libc.html#Foreground-and-Background. */
-void initializeShell()
-{
+void initializeShell();
 // set globals, shell process group (shell_pgid), shell file descriptor
 // ignore SIGINT, SIGQUIT, SIGTSTP, SIGTTIN, SIGTTOU
 
@@ -140,7 +111,9 @@ void initializeShell()
     }
     tcsetpgrp(shell, shell_pgid);
     */
-}
+
+/* Method used to free memory */
+void free(process **commands, char *cmd);
 
 #endif //HW3_SHELL_H
 #endif
