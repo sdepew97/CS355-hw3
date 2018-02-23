@@ -97,8 +97,11 @@ char last_element_of(char *str)
 	return str[--i];
 }
 
-/*returns pointer to first job */
-/* some weird behavior with things like &;*/
+/*
+ *
+ * BUGS: Doesn't like things like &; or asddas &; which is fine but need to catch those and throw syntax error
+ * 		- Currently just puts one process in one job, will expand once we get to piping b/ I don't want to do that right now
+ */
 int parse() 
 {
 	char *line;
