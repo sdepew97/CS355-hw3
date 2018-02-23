@@ -14,15 +14,15 @@ job *all_jobs = NULL;
 void free_all_jobs();
 
 //strings for built in functions
-//char *ext = "exit\0";
-//char *kill = "kill\0";
-//char *jobs = "jobs\0";
-//char *fg = "fg\0";
-//char *bg = "bg\0";
-//char **builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS] = {ext, kill, jobs, fg, bg};
+char *ext = "exit\0";
+char *kill = "kill\0";
+char *jobs = "jobs\0";
+char *fg = "fg\0";
+char *bg = "bg\0";
+char **builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS] = {ext, kill, jobs, fg, bg};
 //operation *operations[NUMBER_OF_BUILT_IN_FUNCTIONS] = {ext, kill, jobs, foreground, background};
 
-//struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
+builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
 
 /* Main method and body of the function. */
 int main (int argc, char **argv) {
@@ -54,12 +54,11 @@ void printPrompt() {
 }
 
 /* make structs for built in commands */
-//void buildBuiltIns() {
-//    for(int i=0; i<NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
-//        allBuiltIns[i].tag = builtInTags[i];
-//
-//    }
-//}
+void buildBuiltIns() {
+    for(int i=0; i<NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
+        allBuiltIns[i].tag = builtInTags[i];
+    }
+}
 
 int readCommandLine(char **commands) {
     /* use case example to get second token */

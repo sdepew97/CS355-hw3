@@ -5,6 +5,7 @@
 #include <readline/history.h>
 #include "shell.h"
 #include "parser.h"
+#include "builtins.h"
 
 #define BUFFER_SIZE 4096
 #define CONTINUE 1
