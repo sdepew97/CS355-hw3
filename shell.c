@@ -5,7 +5,8 @@
 // #include "llist.h"
 // #include "llist_node.h"
 #include "shell.h"
-#include "parser.h" 
+#include "parser.h"
+#include "builtins.h"
 
 job *all_jobs = NULL;
 
@@ -35,4 +36,16 @@ int main (int argc, char **argv) {
     free_all_jobs();
 
     return 0;  
+}
+
+/* print the prompt to the command line */
+void printPrompt() {
+    printf(">>");
+}
+
+/* make structs for built in commands */
+void buildBuiltIns() {
+    for(int i=0; i<NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
+
+    }
 }

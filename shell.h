@@ -8,6 +8,7 @@
 #include <sys/termios.h>
 #include <sys/param.h>
 #include "parser.h"
+#include "builtins.h"
 
 #define BUFFERSIZE 4096
 #define EXIT 0
@@ -17,15 +18,6 @@
 
 int shell; // shell fd
 pid_t shell_pgid; // shell process group
-
-typedef int (*Operation)(char**);
-
-//Structs
-typedef struct builtin
-{
-    char* tag;
-    Operation function;
-} builtin;
 
 //we can add more flags for future command expansion
 typedef struct process {
@@ -46,8 +38,6 @@ typedef struct job {
     int run_in_background;
     struct job *next_job;
 } job;
-
-builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
 
 /* print the prompt to the command line */
 void printPrompt();
