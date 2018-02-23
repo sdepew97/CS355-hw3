@@ -7,7 +7,7 @@
 #include "shell.h"
 #include "parser.h" 
 
-job *all_jobs;
+job *all_jobs = NULL;
 
 void free_all_jobs();
 
@@ -21,24 +21,18 @@ int main (int argc, char **argv) {
     // initializeShell();
     // buildBuiltIns(); //store all builtins in built in array
 
-    // while (!EXIT) {
-    //     job *first_job = NULL;
-
-    // }
+    while (!EXIT) {
+        parse();
+        break;
+    }
 
     /* use case example to get second token */
     /* NOTE EXAMPLE HARDCODED INTO parse.c b/ memory leaks w/ readline */
-    int number_jobs = parse();
-    char **targs = all_jobs->first_process->args;
-    int c = 0;
-    while (targs[c] != NULL) {
-        printf("%s\n", targs[c]);
-        c++;
-    }
+    int rib = all_jobs->run_in_background;
+    printf("%d \n", rib);
 
     /* free memory for all_jobs -- should be called after every prompt */
     free_all_jobs();
 
-    // printf("%s \n", first_job.first_process -> args[0]);
     return 0;  
 }

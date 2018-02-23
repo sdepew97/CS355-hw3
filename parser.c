@@ -17,7 +17,7 @@ char *command_delimintators[NUM_DELIMINATORS] = {"&" , ";", "\0"};
 char *white_space_deliminator = " ";
 char *PROMPT = "$ ";
 
-tokenizer *t;
+tokenizer *t = NULL;
 tokenizer *pt;
 extern job *all_jobs;
 
@@ -61,7 +61,7 @@ char *get_next_token()
 {
 	int count = 0;
 	int is_null = FALSE;
-	char *token;
+	char *token = NULL;
 	if (strncmp(t->pos, "\0", 1) == 0) {
 		return NULL;
 	}
@@ -88,13 +88,17 @@ char *get_next_token()
 	}
 }
 
-char last_element_of(char *str)
+char *last_element_of(char *str)
 {
-	int i = 0;
-	while (str[i] != '\0') {
+	char *i = &str[0];
+	int j = 0;
+	while (strncmp(i, "\0", 1) != 0) {
 		i++;
+		j++;
 	}
-	return str[--i];
+
+	if (j == 0) { return "\0"; }
+	else { return --i; }
 }
 
 /*
@@ -105,10 +109,10 @@ char last_element_of(char *str)
  */
 int parse() 
 {
-	char *line;
+	char *line = NULL;
 
 	/* readline causes leak */
-	line = "ls ;";
+	line = "test run &";
 	// line = readline(PROMPT);
 
 	/* handle c-d */
@@ -127,8 +131,8 @@ int parse()
 
 	// free(line);
 
-	char *token;
-	char **tokenized_process;
+	char *token = NULL;
+	char **tokenized_process = NULL;
 	int num_jobs = 0;
 
 	while((token = get_next_token()) != NULL) {
@@ -144,21 +148,26 @@ int parse()
 
 	job *cur_job;
 	cur_job = malloc(sizeof(job));
+	cur_job->job_string = get_next_token(); 
+
+	cur_job->next_job = NULL;
 
 	all_jobs = cur_job;
-	all_jobs->job_string = get_next_token();
+
+	if (strncmp(last_element_of(all_jobs->job_string), "&", 1) == 0) {
+		all_jobs->run_in_background = TRUE;
+	}
 
 	while ((token = get_next_token()) != NULL) {
 		if (token == NULL) {
 			cur_job->next_job = NULL;
 		}
 		else {
-			// printf("%s\n", token);
 			job *new_job;
 			new_job = malloc(sizeof(job));
 			new_job->job_string = token;
 
-			if (last_element_of(new_job->job_string)) {
+			if (strncmp(last_element_of(new_job->job_string), "&", 1) == 0) {
 				new_job->run_in_background = TRUE;
 			}
 
@@ -182,7 +191,6 @@ int parse()
 
 		temp_job = temp_job->next_job;
 	}
-
 	
 	free(t);
 	return num_jobs;
@@ -195,6 +203,7 @@ void free_all_jobs() {
     while (all_jobs != NULL) {
         free(all_jobs->job_string);
         process *temp_p = all_jobs->first_process;
+        temp_p->next_process = NULL;
         while (temp_p != NULL) {
             free(temp_p->args);
             process *t = temp_p->next_process;
@@ -202,8 +211,7 @@ void free_all_jobs() {
             temp_p = t;
         }
         job *j = all_jobs->next_job;
-        free (all_jobs);
+        free(all_jobs);
         all_jobs = j;
-
     } 
 }
