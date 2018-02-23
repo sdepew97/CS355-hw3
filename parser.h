@@ -9,6 +9,8 @@
 
 int parse();
 
+void free_all_jobs();
+
 typedef struct tokenizer {
 	char *str;
 	char *pos;

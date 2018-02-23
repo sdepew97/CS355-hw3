@@ -17,8 +17,8 @@ char *command_delimintators[NUM_DELIMINATORS] = {"&" , ";", "\0"};
 char *white_space_deliminator = " ";
 char *PROMPT = "$ ";
 
-extern tokenizer *t;
-extern tokenizer *pt;
+tokenizer *t;
+tokenizer *pt;
 extern job *all_jobs;
 
 int split_white_space(char **user_input, char ***tokenized_input)
@@ -98,9 +98,10 @@ char last_element_of(char *str)
 }
 
 /*
- *
+ * Transforms all jobs global into first job in job LL and returns the number of jobs to run
+ * 
  * BUGS: Doesn't like things like &; or asddas &; which is fine but need to catch those and throw syntax error
- * 		- Currently just puts one process in one job, will expand once we get to piping b/ I don't want to do that right now
+ * 		>>> Currently just puts one process in one job, will expand once we get to piping b/ I don't want to deal right now
  */
 int parse() 
 {
@@ -188,3 +189,21 @@ int parse()
 
 }
 
+
+/* free memory associated with all jobs global */
+void free_all_jobs() {
+    while (all_jobs != NULL) {
+        free(all_jobs->job_string);
+        process *temp_p = all_jobs->first_process;
+        while (temp_p != NULL) {
+            free(temp_p->args);
+            process *t = temp_p->next_process;
+            free(temp_p);
+            temp_p = t;
+        }
+        job *j = all_jobs->next_job;
+        free (all_jobs);
+        all_jobs = j;
+
+    } 
+}
