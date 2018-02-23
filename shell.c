@@ -5,7 +5,8 @@
 // #include "llist.h"
 // #include "llist_node.h"
 #include "shell.h"
-#include "parser.h" 
+#include "parser.h"
+#include "builtins.h"
 
 job *all_jobs;
 
@@ -51,13 +52,6 @@ void printPrompt() {
 /* make structs for built in commands */
 void buildBuiltIns() {
     for(int i=0; i<NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
-        allBuiltIns[0].tag =
+
     }
 }
-
-//Structs
-typedef struct builtin
-{
-    char* tag;
-    Operation function;
-} builtin;

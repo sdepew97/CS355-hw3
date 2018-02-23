@@ -8,6 +8,7 @@
 #include <sys/termios.h>
 #include <sys/param.h>
 #include "parser.h"
+#include "builtins.h"
 
 #define BUFFERSIZE 4096
 #define EXIT 0
@@ -26,7 +27,7 @@ typedef struct process {
     int status;
 } process;
 
-typedef struct job {i
+typedef struct job {
     struct process *first_process;
     pid_t pgid;
     char *job_string;
@@ -37,8 +38,6 @@ typedef struct job {i
     int run_in_background;
     struct job *next_job;
 } job;
-
-builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
 
 /* print the prompt to the command line */
 void printPrompt();
