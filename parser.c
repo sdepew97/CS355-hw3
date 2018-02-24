@@ -125,7 +125,7 @@ int perform_parse()
 	t->str = line;
 	t->pos = &((t->str)[0]);
 
-	// free(line);
+	free(line);
 
 	char *token = NULL;
 	char **tokenized_process = NULL;
