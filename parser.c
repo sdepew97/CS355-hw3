@@ -6,6 +6,7 @@
 #include "shell.h"
 #include "parser.h"
 #include "builtins.h"
+#include "boolean.h"
 
 #define BUFFER_SIZE 4096
 #define CONTINUE 1

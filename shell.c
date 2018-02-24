@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "boolean.h"
-// #include "llist.h"
-// #include "llist_node.h"
 #include "shell.h"
 #include "parser.h"
 #include "builtins.h"
@@ -21,6 +19,11 @@ char *jobs_string = "jobs\0";
 char *fg_string = "fg\0";
 char *bg_string = "bg\0";
 
+//strings for jobs printout
+char *running = "Running\0";
+char *stopped = "Stopped\0";
+char *done = "Done\0";
+
 char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS];
 
 struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
@@ -31,12 +34,16 @@ int main (int argc, char **argv) {
     pid_t pid;
     char **commands = NULL;
     char *cmd = NULL;
+    process p;
 
     // initializeShell();
-    // buildBuiltIns(); //store all builtins in built in array
+     buildBuiltIns(); //store all builtins in built in array
 
     while (!EXIT) {
+        printPrompt();
         parse();
+        executeBuiltInCommand(&p, 1); //testing an exit
+        printf("EXIT VALUE %d\n", EXIT);
         break;
     }
 
@@ -76,21 +83,6 @@ void buildBuiltIns() {
         }
     }
 }
-
-int readCommandLine(char **commands) {
-    /* use case example to get second token */
-    /* NOTE EXAMPLE HARDCODED INTO parse.c b/ memory leaks w/ readline */
-    int number_jobs = parse();
-    char **targs = all_jobs->first_process->args;
-    int c = 0;
-    while (targs[c] != NULL) {
-        printf("%s\n", targs[c]);
-        c++;
-    }
-
-    return number_jobs;
-}
-
 
 /* Frees commands and displays error message */
 void handleError(char* message, char **commands, int numCommands) {
@@ -169,15 +161,53 @@ int process_equals(process process1, builtin builtin1) {
     }
 }
 
+/* Passes in the built-in command to be executed along with the index of the command in the allBuiltIns array. This method returns true upon success and false upon failure/error. */
+int executeBuiltInCommand(process *process1, int index) {
+    //give process foreground
+
+    //execute built in (testing...)
+    char *c = "hi\0"; //testing
+    char **d = &c; //testing
+
+    int success =(*(allBuiltIns[index].function))(d);
+
+    //restore shell (if needed?)
+
+    //return success; //for success
+    return TRUE;
+}
+
+/* Method to launch our process in either the foreground or the background. */
+void launchProcess(process *process1, pid_t pgid, int foreground);
+
+/* Method to make sure the shell is running interactively as the foreground job before proceeding. Modeled after method found on https://www.gnu.org/software/libc/manual/html_mono/libc.html#Foreground-and-Background. */
+void initializeShell();
 
 //TODO: Implement all built in functions to use in the program
 /*Method that exits the shell. This command sets the global EXIT variable that breaks out of the while loop in the main function.*/
 int exit_builtin(char** args) {
-    return 0;
+    EXIT = TRUE;
+    return EXIT; //success
 }
 
 /* Method to iterate through the linked list and print out node parameters. */
 int jobs_builtin(char** args) {
+    job *currentJob = all_jobs;
+    process *currentProcess = currentJob->first_process;
+    int jobID = 1;
+
+    char *status[3] = {running, stopped, done};
+
+    while(currentJob != NULL) {
+        while(currentProcess != NULL) {
+            //print out formatted information for processes in job
+            printf("[%d]\t %d %s \t\t %s", jobID, currentProcess->pid, status[currentProcess->status], currentProcess->args[0]); //TODO: fix for all arguments!
+            jobID++;
+            currentProcess = currentProcess->next_process;
+        }
+        //get next job
+        currentJob = currentJob->next_job;
+    }
     return 0;
 }
 

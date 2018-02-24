@@ -9,13 +9,16 @@
 #include <sys/param.h>
 #include "parser.h"
 #include "builtins.h"
+#include "boolean.h"
 
 #define BUFFERSIZE 4096
-#define EXIT 0
-#define RUNNING 1
-#define STOPPED 2
+#define RUNNING 0
+#define STOPPED 1
+#define DONE 2
+#define FALSE 0
 #define NUMBER_OF_BUILT_IN_FUNCTIONS 5
 
+int EXIT = FALSE;
 int shell; // shell fd
 pid_t shell_pgid; // shell process group
 typedef int (*operation)(char**);
@@ -52,15 +55,6 @@ void printPrompt();
 /* make structs for built in commands */
 void buildBuiltIns();
 
-/* takes char ** and returns struct array of delimited commands in “command field”, ie *“vim test.py& blah ;”
- * creates array of two command structs. The first has fields *command_string = “vim test.py” tokenized_
- * command = NULL run_in_background = TRUE  and *second command_string = “blah” tokenized_command = “blah”
- * run_in_background = FALSE.  Returns -1 on failure otherwise return 1 on success. */
-int readCommandLine(char **commands);
-
-///* parses through each command and for every command tokenizes the command string */
-//int tokenizeCommands(char ***commands);
-
 /* Frees commands and displays error message */
 void handleError(char* message, char **commands, int numCommands);
 
@@ -85,10 +79,10 @@ int isBuiltInCommand(process cmd);
 int process_equals(process process1, builtin builtin1);
 
 /* Passes in the built-in command to be executed along with the index of the command in the allBuiltIns array. This method returns true upon success and false upon failure/error. */
-int executeBuiltInCommand(process cmd, int index);
+int executeBuiltInCommand(process *process1, int index);
 
 /* Method to launch our process in either the foreground or the background. */
-void launchProcess(process *command, pid_t pgid, int foreground);
+void launchProcess(process *process1, pid_t pgid, int foreground);
 
 /* Method to make sure the shell is running interactively as the foreground job before proceeding. Modeled after method found on https://www.gnu.org/software/libc/manual/html_mono/libc.html#Foreground-and-Background. */
 void initializeShell();
