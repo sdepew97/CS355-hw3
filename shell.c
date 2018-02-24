@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <errno.h>
+#include <limits.h>
 
 job *all_jobs;
 pid_t shell_pgid;
@@ -41,6 +43,8 @@ int main (int argc, char **argv) {
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
 
+    /*
+
     while (!EXIT) {
         //TODO: check that this takes the place of printing out the prompt?
         if((num_jobs = perform_parse()) < 0) {
@@ -58,7 +62,7 @@ int main (int argc, char **argv) {
 
         //executeBuiltInCommand(&p, 0); //testing an exit
         //printf("EXIT VALUE %d\n", EXIT);
-        break;
+        //break;
     }
 
     /* use case example to get second token */
@@ -66,8 +70,9 @@ int main (int argc, char **argv) {
 //    int rib = all_jobs->run_in_background;
 //    printf("%d \n", rib);
 
-    /* free memory for all_jobs -- should be called after every prompt */
+    /* free memory for all_jobs -- should be called after every prompt
     free_all_jobs();
+    */
 
     return 0;
 }
@@ -90,9 +95,11 @@ void initializeShell() {
         signal(SIGTSTP, SIG_IGN);
         signal(SIGTTIN, SIG_IGN);
         signal(SIGTTOU, SIG_IGN);
+        signal(SIGCHLD, SIG_IGN);
 
         //register a signal handler for SIGCHILD
         /* Handle Signal */
+        /*
         struct sigaction childreturn;
         memset(&childreturn, 0, sizeof(childreturn));
         childreturn.sa_sigaction = &childReturning;
@@ -101,11 +108,12 @@ void initializeShell() {
             printError("Error with sigaction for child.\n");
             return;
         }
+        */
 
         /* Put ourselves in our own process group.  */
         shell_pgid = getpid();
         if (setpgid(shell_pgid, shell_pgid) < 0) {
-            perror("Couldn't put the shell in its own process group");
+            perror("Couldn't put the shell in its own process group.\n");
             exit(1);
         }
 
@@ -117,13 +125,7 @@ void initializeShell() {
     }
 }
 
-//TODO: figure out if still needed??
-///* print the prompt to the command line */
-//void printPrompt() {
-//    printf(">>");
-//}
-
-/* make structs for built in commands */
+/* Make array for built in commands. */
 void buildBuiltIns() {
     char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS] = {exit_string, kill_string, jobs_string, fg_string, bg_string};
 
@@ -167,7 +169,7 @@ int isBackgroundJob(job* job1) {
 /* child process has terminated and so we need to remove the process from the linked list (by pid).
  * We would call this function in the signal handler when getting a SIGCHLD signal. */
 void childReturning(int sig, siginfo_t *siginfo, void *context) {
-
+    printf("child handler hit\n");
 }
 
 /* background running process*/
@@ -348,7 +350,7 @@ void put_job_in_foreground (job *j, int cont) {
             perror("kill (SIGCONT)");
     }
 
-    printf("hello world");
+    printf("hello world\n");
 
     /* Wait for it to report.  */
     //wait_for_job(j); //TODO: wait for job here (add further code!!)?
@@ -407,7 +409,91 @@ int jobs_builtin(char** args) {
 
 /* Method to take a job id and send a SIGTERM to terminate the process.*/
 int kill_builtin(char** args) {
-    return 0;
+    char *flag = "-9\0";
+    if (args[1] == NULL) {
+        //invalid arguments
+        return FALSE;
+    }
+        //check that -9 flag was input correctly, otherwise try sending kill with pid
+    else if (!strcmp(args[1], flag)) {
+        //(error checking gotten from stack overflow)
+        const char *nptr = args[2];                     /* string to read as a PID      */
+        char *endptr = NULL;                            /* pointer to additional chars  */
+        int base = 10;                                  /* numeric base (default 10)    */
+        long long int number = 0;                       /* variable holding return      */
+
+        /* reset errno to 0 before call */
+        errno = 0;
+
+        /* call to strtol assigning return to number */
+        number = strtoll(nptr, &endptr, base);
+
+        /* test return to number and errno values */
+        if (nptr == endptr) {
+            printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
+            return FALSE;
+        } else if (errno == ERANGE && number == LONG_MIN) {
+            printf(" number : %lld  invalid  (underflow occurred)\n", number);
+            return FALSE;
+        } else if (errno == ERANGE && number == LONG_MAX) {
+            printf(" number : %lld  invalid  (overflow occurred)\n", number);
+            return FALSE;
+        } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
+            printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
+            return FALSE;
+        } else if (errno != 0 && number == 0) {
+            printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
+            return FALSE;
+        } else if (errno == 0 && nptr && *endptr != 0) {
+            printf(" number : %lld    invalid  (since additional characters remain)\n", number);
+            return FALSE;
+        }
+
+        //passed all the if statements and so can assigned the seconds value as the one input
+        pid_t pid = number;
+        kill(pid, SIGKILL);
+        return TRUE;
+    } else {
+        //PID is second argument
+        //(error checking gotten from stack overflow)
+        const char *nptr = args[1];                     /* string to read as a PID      */
+        char *endptr = NULL;                            /* pointer to additional chars  */
+        int base = 10;                                  /* numeric base (default 10)    */
+        long long int number = 0;                       /* variable holding return      */
+
+        /* reset errno to 0 before call */
+        errno = 0;
+
+        /* call to strtol assigning return to number */
+        number = strtoll(nptr, &endptr, base);
+
+        /* test return to number and errno values */
+        if (nptr == endptr) {
+            printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
+            return FALSE;
+        } else if (errno == ERANGE && number == LONG_MIN) {
+            printf(" number : %lld  invalid  (underflow occurred)\n", number);
+            return FALSE;
+        } else if (errno == ERANGE && number == LONG_MAX) {
+            printf(" number : %lld  invalid  (overflow occurred)\n", number);
+            return FALSE;
+        } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
+            printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
+            return FALSE;
+        } else if (errno != 0 && number == 0) {
+            printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
+            return FALSE;
+        } else if (errno == 0 && nptr && *endptr != 0) {
+            printf(" number : %lld    invalid  (since additional characters remain)\n", number);
+            return FALSE;
+        }
+
+        //passed all the if statements and so can assigned the seconds value as the one input
+        pid_t pid = number;
+        kill(pid, SIGTERM);
+        return TRUE;
+    }
+    return FALSE;
 }
 
 /* Method that sends continue signal to suspended process in background -- this is bg*/
