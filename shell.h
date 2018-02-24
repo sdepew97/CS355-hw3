@@ -57,6 +57,8 @@ typedef struct job {
 /* print the prompt to the command line */
 void printPrompt();
 
+void printoutargs();
+
 /* make structs for built in commands */
 void buildBuiltIns();
 

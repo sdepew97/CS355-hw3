@@ -40,12 +40,8 @@ int main (int argc, char **argv) {
 
     /* use case example to get second token */
     /* NOTE EXAMPLE HARDCODED INTO parse.c b/ memory leaks w/ readline */
-    char *rib = all_jobs->first_process->args[0];
-    printf("%s \n", rib);
-    rib = all_jobs->first_process->args[1];
-    printf("%s \n", rib);
-    rib = all_jobs->next_job->first_process->args[0];
-    printf("%s \n", rib);
+
+    printoutargs();
 
     /* free memory for all_jobs -- should be called after every prompt */
     free_all_jobs();
@@ -56,6 +52,23 @@ int main (int argc, char **argv) {
 /* print the prompt to the command line */
 void printPrompt() {
     printf(">>");
+}
+
+void printoutargs() {
+    job *temp_job;
+    temp_job = all_jobs;
+    while (temp_job != NULL) {
+    process *temp_proc  = temp_job->first_process;
+    while (temp_proc != NULL) {
+        int i = 0;
+        while ((temp_proc->args)[i] != NULL) {
+            printf("%s \n", (temp_proc->args)[i]);
+            i++;
+        }
+        temp_proc = temp_proc->next_process;
+    }
+    temp_job = temp_job->next_job;
+    }
 }
 
 /* make structs for built in commands */
