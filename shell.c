@@ -51,7 +51,7 @@ int main (int argc, char **argv) {
         }
 
         /* free memory for all_jobs -- should be called after every prompt */
-        free_all_jobs();
+        //free_all_jobs();
         break;
     }
     /*
