@@ -49,6 +49,9 @@ int main (int argc, char **argv) {
         if ((num_jobs = perform_parse()) < 0) {
             printError("Error parsing.\n");
         }
+
+        /* free memory for all_jobs -- should be called after every prompt */
+        free_all_jobs();
         break;
     }
     /*
@@ -71,10 +74,6 @@ int main (int argc, char **argv) {
     /* NOTE EXAMPLE HARDCODED INTO parse.c b/ memory leaks w/ readline */
 //    int rib = all_jobs->run_in_background;
 //    printf("%d \n", rib);
-
-    /* free memory for all_jobs -- should be called after every prompt
-    free_all_jobs();
-    */
 
     return EXIT_SUCCESS;
 }

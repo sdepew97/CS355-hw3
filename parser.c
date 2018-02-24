@@ -169,6 +169,7 @@ int perform_parse()
 
 			cur_job->next_job = new_job;
 			cur_job = new_job;
+            //TODO: determine if this line is needed here free(token);
 		}
 	}
 
