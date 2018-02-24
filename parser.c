@@ -5,12 +5,9 @@
 #include <readline/history.h>
 #include "shell.h"
 #include "parser.h"
-#include "builtins.h"
-#include "boolean.h"
 
 #define BUFFER_SIZE 4096
 #define CONTINUE 1
-#define EXIT 0
 #define TRUE 1
 #define FALSE 0
 #define NUM_DELIMINATORS 3
