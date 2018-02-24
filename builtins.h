@@ -2,11 +2,9 @@
 // Created by Sarah Depew on 2/23/18.
 //
 
-#ifndef HW3_BUILTINS_H
-#define HW3_BUILTINS_H
+#ifndef BUILTINS_H_INCLUDED
+#define BUILTINS_H_INCLUDED
 
-#ifndef _REENTRANT
-#define _REENTRANT
 
 #define NUMBER_OF_BUILT_IN_FUNCTIONS 5
 
@@ -37,4 +35,3 @@ int background_builtin(char** args);
 int foreground_builtin(char** args);
 
 #endif //HW3_BUILTINS_H
-#endif

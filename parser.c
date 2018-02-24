@@ -106,7 +106,7 @@ char *last_element_of(char *str)
  * BUGS: Doesn't like things like &; or asddas &; which is fine but need to catch those and throw syntax error
  * 		>>> Currently just puts one process in one job, will expand once we get to piping b/ I don't want to deal right now
  */
-int parse() 
+int perform_parse() 
 {
 	char *line = NULL;
 

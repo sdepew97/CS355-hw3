@@ -1,23 +1,24 @@
-//
-// Created by Sarah Depew on 2/22/18.
-//
+#ifndef SHELL_H_INCLUDED
+#define SHELL_H_INCLUDED
 
-#ifndef SHELL_H_
-#define SHELL_H_
-
-#include <sys/termios.h>
-#include <sys/param.h>
-#include "parser.h"
+#include <zconf.h>
+#include <sys/wait.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "boolean.h"
+#include "parser.h"
+#include <termios.h>
 
 #define BUFFERSIZE 4096
 #define RUNNING 0
 #define STOPPED 1
 #define DONE 2
 #define FALSE 0
+#define TRUE 1
 #define NUMBER_OF_BUILT_IN_FUNCTIONS 5
 
-int EXIT = FALSE;
+int EXIT;
 int shell; // shell fd
 pid_t shell_pgid; // shell process group
 typedef int (*operation)(char**);
@@ -27,6 +28,11 @@ typedef struct builtin {
     char *tag;
     operation function;
 } builtin;
+
+typedef struct tokenizer {
+    char *str;
+    char *pos;
+} tokenizer;
 
 //we can add more flags for future command expansion
 typedef struct process {

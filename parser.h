@@ -1,20 +1,9 @@
 
-#ifndef PARSER_H_
-#define PARSER_H_
+#ifndef PARSER_H_INCLUDED
+#define PARSER_H_INCLUDED
 
-#ifndef _REENTRANT
-#define _REENTRANT
-
-#include "shell.h"
-
-int parse();
-
+int perform_parse();
 void free_all_jobs();
 
-typedef struct tokenizer {
-	char *str;
-	char *pos;
-} tokenizer;
 
-#endif
 #endif

@@ -1,15 +1,7 @@
-#include <zconf.h>
-#include <sys/wait.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "boolean.h"
 #include "shell.h"
 #include "parser.h"
 
-job *all_jobs = NULL;
-
-void free_all_jobs();
+job *all_jobs;
 
 //strings for built in functions
 char *exit_string = "exit\0";
@@ -30,19 +22,19 @@ struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
 /* Main method and body of the function. */
 int main (int argc, char **argv) {
     int status, read_command_status, parse_command_status;
+    EXIT = FALSE;
     pid_t pid;
     char **commands = NULL;
     char *cmd = NULL;
-    process p;
 
+    process p;
     // initializeShell();
-     buildBuiltIns(); //store all builtins in built in array
+     // buildBuiltIns(); //store all builtins in built in array
 
     while (!EXIT) {
-        printPrompt();
-        parse();
-        executeBuiltInCommand(&p, 1); //testing an exit
-        printf("EXIT VALUE %d\n", EXIT);
+        perform_parse();
+        // executeBuiltInCommand(&p, 1); //testing an exit
+        // printf("EXIT VALUE %d\n", EXIT);
         break;
     }
 

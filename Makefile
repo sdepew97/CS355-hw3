@@ -1,4 +1,4 @@
-src = $(filter-out linked_list, $(wildcard *.c))
+src = $(wildcard *.c)
 obj = $(src:.c=.o)
 
 # LDFLAGS = -lGL -lglut -lpng -lz -lm
