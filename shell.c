@@ -40,8 +40,12 @@ int main (int argc, char **argv) {
 
     /* use case example to get second token */
     /* NOTE EXAMPLE HARDCODED INTO parse.c b/ memory leaks w/ readline */
-    int rib = all_jobs->run_in_background;
-    printf("%d \n", rib);
+    char *rib = all_jobs->first_process->args[0];
+    printf("%s \n", rib);
+    rib = all_jobs->first_process->args[1];
+    printf("%s \n", rib);
+    rib = all_jobs->next_job->first_process->args[0];
+    printf("%s \n", rib);
 
     /* free memory for all_jobs -- should be called after every prompt */
     free_all_jobs();

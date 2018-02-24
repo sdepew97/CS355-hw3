@@ -111,7 +111,7 @@ int perform_parse()
 	char *line = NULL;
 
 	/* readline causes leak */
-	line = "test run &";
+	line = "ls ;ls";
 	// line = readline(PROMPT);
 
 	/* handle c-d */
