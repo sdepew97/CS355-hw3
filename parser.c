@@ -184,6 +184,7 @@ int perform_parse()
 		split_white_space(&(temp_job->job_string), &(tokenized_process));
 
 		cur_process->args = tokenized_process;
+        cur_process->next_process = NULL;
 		temp_job->first_process = cur_process;
 
 		temp_job = temp_job->next_job;
