@@ -14,7 +14,7 @@
 
 char *command_delimintators[NUM_DELIMINATORS] = {"&" , ";", "\0"};
 char *white_space_deliminator = " ";
-char *PROMPT = "$ ";
+char *PROMPT = ">> ";
 
 tokenizer *t = NULL;
 tokenizer *pt;
@@ -48,43 +48,40 @@ int split_white_space(char **user_input, char ***tokenized_input)
 }
 
 int is_a_deliminator(char *s) {
-	for (int i = 0; i < NUM_DELIMINATORS; i++) {
-		if (strncmp(s, command_delimintators[i], 1) == 0) {
-			return TRUE;
-		}	
-	}
-	return FALSE;
+    for (int i = 0; i < NUM_DELIMINATORS; i++) {
+        if (strncmp(s, command_delimintators[i], 1) == 0) {
+            return TRUE;
+        }
+    }
+    return FALSE;
 }
 
-char *get_next_token()
-{
-	int count = 0;
-	int is_null = FALSE;
-	char *token = NULL;
-	if (strncmp(t->pos, "\0", 1) == 0) {
-		return NULL;
-	}
-	else if (is_a_deliminator(t->pos)) {
-		/* might want to make this where syntax errors occur */
-		token = t->pos;
-		t->pos++;
-		return token;
-	}
-	else {
-		while (!(is_a_deliminator(t->pos))) {
-			count++;
-			t->pos++;
-		}
-		if (strncmp(t->pos, "\0", 1) == 0) { t->pos--, count--; }
-		token = malloc(sizeof(char*) * (count + 1));
-		t->pos -= count;
-		for (int i = 0; i <= count; i++) {
-			token[i] = *(t->pos);
-			t->pos++;
-		}
-		token[count+1] = '\0'; 
-		return token;
-	}
+char *get_next_token() {
+    int count = 0;
+    int is_null = FALSE;
+    char *token = NULL;
+    if (strncmp(t->pos, "\0", 1) == 0) {
+        return NULL;
+    } else if (is_a_deliminator(t->pos)) {
+        /* might want to make this where syntax errors occur */
+        token = t->pos;
+        t->pos++;
+        return token;
+    } else {
+        while (!(is_a_deliminator(t->pos))) {
+            count++;
+            t->pos++;
+        }
+        if (strncmp(t->pos, "\0", 1) == 0) { t->pos--, count--; }
+        token = malloc(sizeof(char *) * (count + 1));
+        t->pos -= count;
+        for (int i = 0; i <= count; i++) {
+            token[i] = *(t->pos);
+            t->pos++;
+        }
+        token[count + 1] = '\0';
+        return token;
+    }
 }
 
 char *last_element_of(char *str)
@@ -111,8 +108,8 @@ int perform_parse()
 	char *line = NULL;
 
 	/* readline causes leak */
-	line = "test run &";
-	// line = readline(PROMPT);
+	//line = "test run &";
+	line = readline(PROMPT);
 
 	/* handle c-d */
 	if (line == NULL) {

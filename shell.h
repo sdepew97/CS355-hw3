@@ -17,6 +17,7 @@
 #define FALSE 0
 #define TRUE 1
 #define NUMBER_OF_BUILT_IN_FUNCTIONS 5
+#define NOT_FOUND -1
 
 int EXIT;
 int shell; // shell fd
@@ -60,6 +61,9 @@ void printPrompt();
 /* make structs for built in commands */
 void buildBuiltIns();
 
+/* Displays error message */
+void printError(char* message);
+
 /* Frees commands and displays error message */
 void handleError(char* message, char **commands, int numCommands);
 
@@ -87,7 +91,12 @@ int process_equals(process process1, builtin builtin1);
 int executeBuiltInCommand(process *process1, int index);
 
 /* Method to launch our process in either the foreground or the background. */
-void launchProcess(process *process1, pid_t pgid, int foreground);
+//void launchProcess(process *process1, pid_t pgid, int foreground);
+
+void launchJob (job *j, int foreground);
+void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile, int foreground);
+void put_job_in_foreground (job *j, int cont);
+void put_job_in_background (job *j, int cont);
 
 /* Method to make sure the shell is running interactively as the foreground job before proceeding. Modeled after method found on https://www.gnu.org/software/libc/manual/html_mono/libc.html#Foreground-and-Background. */
 void initializeShell();
