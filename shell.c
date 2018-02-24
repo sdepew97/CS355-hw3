@@ -54,7 +54,6 @@ int main (int argc, char **argv) {
             launchJob(currentJob, !(currentJob->run_in_background));
             //get next job
             currentJob = currentJob->next_job;
-            break;
         }
 
         //executeBuiltInCommand(&p, 0); //testing an exit
@@ -338,18 +337,22 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
    SIGCONT signal to wake it up before we block.  */
 
 void put_job_in_foreground (job *j, int cont) {
+    int status;
     /* Put the job into the foreground.  */
     tcsetpgrp(shell_terminal, j->pgid);
 
     /* Send the job a continue signal, if necessary.  */
     if (cont) {
-        tcsetattr(shell_terminal, TCSADRAIN, &j->tmodes);
+        tcsetattr(shell_terminal, TCSADRAIN, &j->termios_modes);
         if (kill(-j->pgid, SIGCONT) < 0)
             perror("kill (SIGCONT)");
     }
 
+    printf("hello world");
+
     /* Wait for it to report.  */
-    //wait_for_job(j); //TODO: wait for job here?
+    //wait_for_job(j); //TODO: wait for job here (add further code!!)?
+    waitpid (WAIT_ANY, &status, WUNTRACED);
 
     /* Put the shell back in the foreground.  */
     tcsetpgrp(shell_terminal, shell_pgid);
