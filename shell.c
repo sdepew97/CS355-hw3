@@ -30,6 +30,54 @@ char *done = "Done\0";
 char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS];
 
 struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
+//
+///* Main method and body of the function. */
+//int main (int argc, char **argv) {
+//    int status, read_command_status, parse_command_status;
+//    EXIT = FALSE;
+//    pid_t pid;
+//    char **commands = NULL;
+//    char *cmd = NULL;
+//    process p;
+//    int num_jobs;
+//
+//    initializeShell(); //TESTING NOTE: Seems to be working/no set faults
+//    buildBuiltIns(); //store all builtins in built in array //TESTING NOTE: Seems to be working/no seg faults
+//
+//    while (!EXIT) {
+//        //TODO: check that this takes the place of printing out the prompt?
+//        if ((num_jobs = perform_parse()) < 0) {
+//            printError("Error parsing.\n");
+//        }
+//
+//        break;
+//    }
+//    /*
+//
+//        job *currentJob = all_jobs;
+//        process *currentProcess = NULL;
+//
+//        while(currentJob != NULL) {
+//            launchJob(currentJob, !(currentJob->run_in_background));
+//            //get next job
+//            currentJob = currentJob->next_job;
+//        }
+//
+//        //executeBuiltInCommand(&p, 0); //testing an exit
+//        //printf("EXIT VALUE %d\n", EXIT);
+//        //break;
+//    }
+//
+//    /* use case example to get second token */
+//    /* NOTE EXAMPLE HARDCODED INTO parse.c b/ memory leaks w/ readline */
+////    int rib = all_jobs->run_in_background;
+////    printf("%d \n", rib);
+//
+//    /* free memory for all_jobs -- should be called after every prompt */
+//    free_all_jobs();
+//
+//    return EXIT_SUCCESS;
+//}
 
 /* Main method and body of the function. */
 int main (int argc, char **argv) {
@@ -38,45 +86,41 @@ int main (int argc, char **argv) {
     pid_t pid;
     char **commands = NULL;
     char *cmd = NULL;
-    process p;
-    int num_jobs;
 
-    initializeShell(); //TESTING NOTE: Seems to be working/no set faults
-    buildBuiltIns(); //store all builtins in built in array //TESTING NOTE: Seems to be working/no seg faults
+    process p;
+    initializeShell();
+    buildBuiltIns(); //store all builtins in built in array
 
     while (!EXIT) {
-        //TODO: check that this takes the place of printing out the prompt?
-        if ((num_jobs = perform_parse()) < 0) {
-            printError("Error parsing.\n");
-        }
-
-        break;
-    }
-    /*
-
-        job *currentJob = all_jobs;
-        process *currentProcess = NULL;
-
-        while(currentJob != NULL) {
-            launchJob(currentJob, !(currentJob->run_in_background));
-            //get next job
-            currentJob = currentJob->next_job;
-        }
-
+        perform_parse();
         //executeBuiltInCommand(&p, 0); //testing an exit
         //printf("EXIT VALUE %d\n", EXIT);
-        //break;
+
+//        job *currentJob = all_jobs;
+//        process *currentProcess = NULL;
+//
+//        while (currentJob != NULL) {
+//            launchJob(currentJob, !(currentJob->run_in_background));
+//            //get next job
+//            currentJob = currentJob->next_job;
+//        }
+
+        break;
     }
 
     /* use case example to get second token */
     /* NOTE EXAMPLE HARDCODED INTO parse.c b/ memory leaks w/ readline */
-//    int rib = all_jobs->run_in_background;
-//    printf("%d \n", rib);
+    //char *rib = all_jobs->first_process->args[0];
+  //  printf("%s \n", rib);
+//    rib = all_jobs->first_process->args[1];
+//    printf("%s \n", rib);
+//    rib = all_jobs->next_job->first_process->args[0];
+//    printf("%s \n", rib);
 
     /* free memory for all_jobs -- should be called after every prompt */
-    free_all_jobs();
+    //free_all_jobs();
 
-    return EXIT_SUCCESS;
+    return 0;
 }
 
 /* Make sure the shell is running interactively as the foreground job
@@ -386,29 +430,6 @@ int exit_builtin(char** args) {
     return EXIT; //success
 }
 
-//TODO: figure out why this is segfaulting?
-/* Method to iterate through the linked list and print out node parameters. */
-int jobs_builtin(char** args) {
-    job *currentJob = all_jobs;
-    process *currentProcess = currentJob->first_process;
-    int jobID = 1;
-
-    char *status[3] = {running, stopped, done};
-
-    while(currentJob != NULL) {
-        currentProcess = currentProcess->next_process;
-        while(currentProcess != NULL) {
-            //print out formatted information for processes in job
-            printf("[%d]\t %d %s \t\t %s\n", jobID, currentProcess->pid, status[currentProcess->status], currentProcess->args[0]); //TODO: fix for all arguments!
-            jobID++;
-            currentProcess = currentProcess->next_process;
-        }
-        //get next job
-        currentJob = currentJob->next_job;
-    }
-    return 0;
-}
-
 /* Method to take a job id and send a SIGTERM to terminate the process.*/
 int kill_builtin(char** args) {
     char *flag = "-9\0";
@@ -496,6 +517,34 @@ int kill_builtin(char** args) {
         return TRUE;
     }
     return FALSE;
+}
+
+//TODO: figure out why this is segfaulting?
+/* Method to iterate through the linked list and print out node parameters. */
+int jobs_builtin(char** args) {
+    job *currentJob = all_jobs;
+    process *currentProcess;
+
+    if (currentJob != NULL) {
+        currentProcess = currentJob->first_process;
+    }
+
+    int jobID = 1;
+
+    char *status[3] = {running, stopped, done};
+
+    while (currentJob != NULL) {
+        while (currentProcess != NULL) {
+            //print out formatted information for processes in job
+            printf("[%d]\t %d %s \t\t %s\n", jobID, currentProcess->pid, status[currentProcess->status],
+                   currentProcess->args[0]); //TODO: fix for all arguments!
+            jobID++;
+            currentProcess = currentProcess->next_process;
+        }
+        //get next job
+        currentJob = currentJob->next_job;
+    }
+    return EXIT_FAILURE;
 }
 
 /* Method that sends continue signal to suspended process in background -- this is bg*/

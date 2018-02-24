@@ -108,8 +108,8 @@ int perform_parse()
 	char *line = NULL;
 
 	/* readline causes leak */
-	//line = "test run &";
-	line = readline(PROMPT);
+	line = "exit\0";
+//	line = readline(PROMPT);
 
 	/* handle c-d */
 	if (line == NULL) {
@@ -125,7 +125,7 @@ int perform_parse()
 	t->str = line;
 	t->pos = &((t->str)[0]);
 
-	free(line);
+//	free(line);
 
 	char *token = NULL;
 	char **tokenized_process = NULL;
