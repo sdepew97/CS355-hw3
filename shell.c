@@ -4,6 +4,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <limits.h>
@@ -40,16 +41,17 @@ int main (int argc, char **argv) {
     process p;
     int num_jobs;
 
-    initializeShell();
-    buildBuiltIns(); //store all builtins in built in array
-
-    /*
+    initializeShell(); //TESTING NOTE: Seems to be working/no set faults
+    buildBuiltIns(); //store all builtins in built in array //TESTING NOTE: Seems to be working/no seg faults
 
     while (!EXIT) {
         //TODO: check that this takes the place of printing out the prompt?
-        if((num_jobs = perform_parse()) < 0) {
+        if ((num_jobs = perform_parse()) < 0) {
             printError("Error parsing.\n");
         }
+        break;
+    }
+    /*
 
         job *currentJob = all_jobs;
         process *currentProcess = NULL;
@@ -74,7 +76,7 @@ int main (int argc, char **argv) {
     free_all_jobs();
     */
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 /* Make sure the shell is running interactively as the foreground job
