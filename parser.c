@@ -14,7 +14,7 @@
 
 char *command_delimintators[NUM_DELIMINATORS] = {"&" , ";", "\0"};
 char *white_space_deliminator = " ";
-char *PROMPT = ">> ";
+char *PROMPT = "$ ";
 
 tokenizer *t = NULL;
 tokenizer *pt;
@@ -25,11 +25,11 @@ int split_white_space(char **user_input, char ***tokenized_input)
 	int buffer_mark = BUFFER_SIZE;
 
 	(*tokenized_input) = malloc(sizeof(char*)*BUFFER_SIZE);
+
 	if (*tokenized_input == NULL) { return EXIT; }
 
 	int i = 0;
 	(*tokenized_input)[i] = strtok(*user_input, " ");
-
 	while ((*tokenized_input)[i] != NULL) {
 		i++;
 		if (i == buffer_mark - 1) {
@@ -48,40 +48,45 @@ int split_white_space(char **user_input, char ***tokenized_input)
 }
 
 int is_a_deliminator(char *s) {
-    for (int i = 0; i < NUM_DELIMINATORS; i++) {
-        if (strncmp(s, command_delimintators[i], 1) == 0) {
-            return TRUE;
-        }
-    }
-    return FALSE;
+	for (int i = 0; i < NUM_DELIMINATORS; i++) {
+		if (strncmp(s, command_delimintators[i], 1) == 0) {
+			return TRUE;
+		}	
+	}
+	return FALSE;
 }
 
-char *get_next_token() {
-    int count = 0;
-    int is_null = FALSE;
-    char *token = NULL;
-    if (strncmp(t->pos, "\0", 1) == 0) {
-        return NULL;
-    } else if (is_a_deliminator(t->pos)) {
-        /* might want to make this where syntax errors occur */
-        token = t->pos;
-        t->pos++;
-        return token;
-    } else {
-        while (!(is_a_deliminator(t->pos))) {
-            count++;
-            t->pos++;
-        }
-        if (strncmp(t->pos, "\0", 1) == 0) { t->pos--, count--; }
-        token = malloc(sizeof(char *) * (count + 1));
-        t->pos -= count;
-        for (int i = 0; i <= count; i++) {
-            token[i] = *(t->pos);
-            t->pos++;
-        }
-        token[count + 1] = '\0';
-        return token;
-    }
+char *get_next_token()
+{
+	int count = 0;
+	int is_null = FALSE;
+	char *token = NULL;
+	if (strncmp(t->pos, "\0", 1) == 0) {
+		return NULL;
+	}
+	else if (is_a_deliminator(t->pos)) {
+		/* might want to make this where syntax errors occur */
+		fprintf(stderr, "Syntax error near unexpected token %s \n", t->pos);
+		exit(EXIT_FAILURE);
+		token = t->pos;
+		t->pos++;
+		return token;
+	}
+	else {
+		while (!(is_a_deliminator(t->pos))) {
+			count++;
+			t->pos++;
+		}
+		if (strncmp(t->pos, "\0", 1) == 0) { t->pos--, count--; }
+		token = malloc(sizeof(char*) * (count + 1));
+		t->pos -= count;
+		for (int i = 0; i <= count; i++) {
+			token[i] = *(t->pos);
+			t->pos++;
+		}
+		token[count+1] = '\0'; 
+		return token;
+	}
 }
 
 char *last_element_of(char *str)
@@ -108,8 +113,8 @@ int perform_parse()
 	char *line = NULL;
 
 	/* readline causes leak */
-	//line = "exit\0";
-	line = readline(PROMPT);
+	// line = readline(PROMPT);
+	line = "ls ; ";
 
 	/* handle c-d */
 	if (line == NULL) {
@@ -124,8 +129,6 @@ int perform_parse()
 	t = malloc(sizeof(tokenizer));
 	t->str = line;
 	t->pos = &((t->str)[0]);
-
-//	free(line);
 
 	char *token = NULL;
 	char **tokenized_process = NULL;
@@ -142,36 +145,33 @@ int perform_parse()
 	t->str = line;
 	t->pos = &((t->str)[0]);
 
-	job *cur_job;
+	job *cur_job; 
 	cur_job = malloc(sizeof(job));
-	cur_job->job_string = get_next_token(); 
-
-	cur_job->next_job = NULL;
-
 	all_jobs = cur_job;
 
-	if (strncmp(last_element_of(all_jobs->job_string), "&", 1) == 0) {
-		all_jobs->run_in_background = TRUE;
-	}
-
 	while ((token = get_next_token()) != NULL) {
-		if (token == NULL) {
-			cur_job->next_job = NULL;
-		}
-		else {
-			job *new_job;
-			new_job = malloc(sizeof(job));
-			new_job->job_string = token;
+		job *new_job;
+		new_job = malloc(sizeof(job));
+		new_job->next_job = NULL;
 
-			if (strncmp(last_element_of(new_job->job_string), "&", 1) == 0) {
-				new_job->run_in_background = TRUE;
-			}
+		cur_job->job_string = token;
+		cur_job->next_job = new_job;
+		cur_job->pgid = 0;
+		cur_job->stdin = STDIN_FILENO;
+		cur_job->stdout = STDOUT_FILENO;
+		cur_job->stderr = STDERR_FILENO;
 
-			cur_job->next_job = new_job;
-            cur_job->pgid = 0;
-			cur_job = new_job;
-            //TODO: determine if this line is needed here free(token);
+		if (strncmp(last_element_of(cur_job->job_string), "&", 1) == 0) {
+			int l = strlen(cur_job->job_string);
+			(cur_job->job_string)[l-1] = '\0';
+			cur_job->run_in_background = TRUE;
 		}
+		if (strncmp(last_element_of(cur_job->job_string), ";", 1) == 0) {
+			int l = strlen(cur_job->job_string);
+			(cur_job->job_string)[l-1] = '\0';
+		}
+
+		cur_job = new_job;
 	}
 
 	/* need to add second layer of delimination for multiple processes within same job
@@ -185,13 +185,24 @@ int perform_parse()
 		split_white_space(&(temp_job->job_string), &(tokenized_process));
 
 		cur_process->args = tokenized_process;
-        cur_process->next_process = NULL;
+		cur_process->next_process = NULL;
+		cur_process->pid = 0;
+		cur_process->status = 0;
+
 		temp_job->first_process = cur_process;
 
+		/* clean up jobs because it leaves one  */
+		if (temp_job->next_job->next_job == NULL) { 
+			temp_job->next_job = NULL; 
+		}
+
 		temp_job = temp_job->next_job;
+
 	}
-	
+
 	free(t);
+	// free(line); 
+	free(cur_job);
 	return num_jobs;
 }
 
