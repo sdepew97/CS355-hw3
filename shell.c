@@ -174,9 +174,9 @@ int isBackgroundJob(job* job1) {
 /* child process has terminated and so we need to remove the process from the linked list (by pid).
  * We would call this function in the signal handler when getting a SIGCHLD signal. */
 void childReturning(int sig, siginfo_t *siginfo, void *context) {
-    printf("child handler hit with code");
-    printf("%d\n", siginfo->si_code);
-    printf("signal number %d\n", siginfo->si_signo);
+    //printf("child handler hit with code");
+    //printf("%d\n", siginfo->si_code);
+    //printf("signal number %d\n", siginfo->si_signo);
     //if(siginfo->)
 }
 
