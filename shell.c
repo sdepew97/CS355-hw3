@@ -56,7 +56,7 @@ int main (int argc, char **argv) {
         }
         // printf("EXIT VALUE %d\n", EXIT);
         free_all_jobs();
-        break;
+        //break;
         
     }
 
