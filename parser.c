@@ -113,8 +113,8 @@ int perform_parse()
 	char *line = NULL;
 
 	/* readline causes leak */
-	// line = readline(PROMPT);
-	line = "ls ; ";
+    line = readline(PROMPT);
+	//line = "ls ; ";
 
 	/* handle c-d */
 	if (line == NULL) {

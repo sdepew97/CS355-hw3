@@ -65,9 +65,6 @@ int main (int argc, char **argv) {
 
     // printoutargs();
 
-
-   
-
     return 0;
 }
 
@@ -93,7 +90,6 @@ void printoutargs() {
 void initializeShell() {
     /* See if we are running interactively.  */
     shell_terminal = STDIN_FILENO;
-    // printf("shell term %d \n");
     shell_is_interactive = isatty(shell_terminal);
 
     if (shell_is_interactive) {
@@ -260,10 +256,7 @@ void launchJob(job *j, int foreground) {
     process *p;
     pid_t pid;
     for (p = j->first_process; p; p = p->next_process) {
-
         int isBuiltIn = isBuiltInCommand(*p);
-        
-        // printf("is built in %d\n", isBuiltIn);
 
         //run as a built-in command
         if (isBuiltIn != NOT_FOUND) {
@@ -273,13 +266,11 @@ void launchJob(job *j, int foreground) {
         else {
             /* Fork the child processes.  */
             pid = fork();
-            if (pid == 0) {
-                // printf("%d pgid launch \n", j->pgid );
-                /* This is the child process.  */
 
+            if (pid == 0) {
+                /* This is the child process.  */
                 launchProcess(p, j->pgid, j->stdin, j->stdout, j->stderr, foreground);
-            }
-            else if (pid < 0) {
+            } else if (pid < 0) {
                 /* The fork failed.  */
                 perror("fork");
                 exit(1);
@@ -315,8 +306,8 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
        This has to be done both by the shell and in the individual
        child processes because of potential race conditions.  */ //TODO: consider race conditions arising here!!
     pid = getpid(); 
-    // printf("%d \n", pgid);
-    if (pgid == 0) {   
+
+    if (pgid == 0) {
         pgid = pid;
     }
 
