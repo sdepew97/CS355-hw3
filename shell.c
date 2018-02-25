@@ -50,7 +50,6 @@ int main (int argc, char **argv) {
         while (currentJob != NULL) {  
             launchJob(currentJob, !(currentJob->run_in_background));
 
-            
             //get next job
             currentJob = currentJob->next_job;
         }

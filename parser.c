@@ -166,6 +166,9 @@ int perform_parse()
 			(cur_job->job_string)[l-1] = '\0';
 			cur_job->run_in_background = TRUE;
 		}
+        else {
+            cur_job->run_in_background = FALSE;
+        }
 		if (strncmp(last_element_of(cur_job->job_string), ";", 1) == 0) {
 			int l = strlen(cur_job->job_string);
 			(cur_job->job_string)[l-1] = '\0';

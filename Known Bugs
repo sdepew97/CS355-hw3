@@ -4,3 +4,7 @@ Known Bugs:
 3) potential concurrency issues, since SIGCHLD is not yet implemented at all...
 4) segfault in split whitespace
 5) issue with backgrounding jobs that causes core dump to occur
+6) ==24663== Conditional jump or move depends on uninitialised value(s)
+   ==24663==    at 0x109965: launchProcess (in /home/sdepew/CS355/hw3/shell)
+   ==24663==    by 0x10988D: launchJob (in /home/sdepew/CS355/hw3/shell)
+   ==24663==    by 0x1091BC: main (in /home/sdepew/CS355/hw3/shell) (What does this mean!?)
