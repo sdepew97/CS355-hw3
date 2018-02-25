@@ -28,56 +28,7 @@ char *stopped = "Stopped\0";
 char *done = "Done\0";
 
 char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS];
-
 struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
-//
-///* Main method and body of the function. */
-//int main (int argc, char **argv) {
-//    int status, read_command_status, parse_command_status;
-//    EXIT = FALSE;
-//    pid_t pid;
-//    char **commands = NULL;
-//    char *cmd = NULL;
-//    process p;
-//    int num_jobs;
-//
-//    initializeShell(); //TESTING NOTE: Seems to be working/no set faults
-//    buildBuiltIns(); //store all builtins in built in array //TESTING NOTE: Seems to be working/no seg faults
-//
-//    while (!EXIT) {
-//        //TODO: check that this takes the place of printing out the prompt?
-//        if ((num_jobs = perform_parse()) < 0) {
-//            printError("Error parsing.\n");
-//        }
-//
-//        break;
-//    }
-//    /*
-//
-//        job *currentJob = all_jobs;
-//        process *currentProcess = NULL;
-//
-//        while(currentJob != NULL) {
-//            launchJob(currentJob, !(currentJob->run_in_background));
-//            //get next job
-//            currentJob = currentJob->next_job;
-//        }
-//
-//        //executeBuiltInCommand(&p, 0); //testing an exit
-//        //printf("EXIT VALUE %d\n", EXIT);
-//        //break;
-//    }
-//
-//    /* use case example to get second token */
-//    /* NOTE EXAMPLE HARDCODED INTO parse.c b/ memory leaks w/ readline */
-////    int rib = all_jobs->run_in_background;
-////    printf("%d \n", rib);
-//
-//    /* free memory for all_jobs -- should be called after every prompt */
-//    free_all_jobs();
-//
-//    return EXIT_SUCCESS;
-//}
 
 /* Main method and body of the function. */
 int main (int argc, char **argv) {
@@ -93,34 +44,44 @@ int main (int argc, char **argv) {
 
     while (!EXIT) {
         perform_parse();
-        //executeBuiltInCommand(&p, 0); //testing an exit
-        //printf("EXIT VALUE %d\n", EXIT);
 
-//        job *currentJob = all_jobs;
-//        process *currentProcess = NULL;
-//
-//        while (currentJob != NULL) {
-//            launchJob(currentJob, !(currentJob->run_in_background));
-//            //get next job
-//            currentJob = currentJob->next_job;
-//        }
+        job *currentJob = all_jobs;
 
-        break;
+        while (currentJob != NULL) {
+            launchJob(currentJob, !(currentJob->run_in_background));
+
+            //get next job
+            currentJob = currentJob->next_job;
+        }
+        printf("EXIT VALUE %d\n", EXIT);
+        //break;
     }
 
     /* use case example to get second token */
     /* NOTE EXAMPLE HARDCODED INTO parse.c b/ memory leaks w/ readline */
-    //char *rib = all_jobs->first_process->args[0];
-  //  printf("%s \n", rib);
-//    rib = all_jobs->first_process->args[1];
-//    printf("%s \n", rib);
-//    rib = all_jobs->next_job->first_process->args[0];
-//    printf("%s \n", rib);
+    printoutargs();
 
     /* free memory for all_jobs -- should be called after every prompt */
-    //free_all_jobs();
+    free_all_jobs();
 
     return 0;
+}
+
+void printoutargs() {
+    job *temp_job;
+    temp_job = all_jobs;
+    while (temp_job != NULL) {
+        process *temp_proc = temp_job->first_process;
+        while (temp_proc != NULL) {
+            int i = 0;
+            while ((temp_proc->args)[i] != NULL) {
+                printf("%s \n", (temp_proc->args)[i]);
+                i++;
+            }
+            temp_proc = temp_proc->next_process;
+        }
+        temp_job = temp_job->next_job;
+    }
 }
 
 /* Make sure the shell is running interactively as the foreground job
@@ -141,11 +102,10 @@ void initializeShell() {
         signal(SIGTSTP, SIG_IGN);
         signal(SIGTTIN, SIG_IGN);
         signal(SIGTTOU, SIG_IGN);
-        signal(SIGCHLD, SIG_IGN);
+        //signal(SIGCHLD, SIG_IGN);
 
         //register a signal handler for SIGCHILD
         /* Handle Signal */
-        /*
         struct sigaction childreturn;
         memset(&childreturn, 0, sizeof(childreturn));
         childreturn.sa_sigaction = &childReturning;
@@ -154,7 +114,6 @@ void initializeShell() {
             printError("Error with sigaction for child.\n");
             return;
         }
-        */
 
         /* Put ourselves in our own process group.  */
         shell_pgid = getpid();
@@ -280,10 +239,7 @@ int executeBuiltInCommand(process *process1, int index) {
     //give process foreground
 
     //execute built in (testing...)
-    char *c = "hi\0"; //testing
-    char **d = &c; //testing
-
-    int success =(*(allBuiltIns[index].function))(d);
+    int success =(*(allBuiltIns[index].function))(process1->args);
 
     //restore shell (if needed?)
 
@@ -322,7 +278,7 @@ void launchJob(job *j, int foreground) {
 
                 if (!j->pgid)
                     j->pgid = pid;
-                setpgid(pid, j->pgid);
+                setpgid(pid, j->pgid); //TODO: check process group ids being altered correctly
 
             }
         }
@@ -346,7 +302,10 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
        This has to be done both by the shell and in the individual
        child processes because of potential race conditions.  */ //TODO: consider race conditions arising here!!
     pid = getpid();
-    if (pgid == 0) pgid = pid;
+    if (pgid == 0) {
+        pgid = pid;
+    }
+
     setpgid(pid, pgid);
 
     if (foreground)
@@ -419,9 +378,6 @@ void put_job_in_background (job *j, int cont) {
         if (kill (-j->pgid, SIGCONT) < 0)
             perror ("kill (SIGCONT)");
 }
-
-/* Method to make sure the shell is running interactively as the foreground job before proceeding. Modeled after method found on https://www.gnu.org/software/libc/manual/html_mono/libc.html#Foreground-and-Background. */
-void initializeShell();
 
 //TODO: Implement all built in functions to use in the program
 /*Method that exits the shell. This command sets the global EXIT variable that breaks out of the while loop in the main function.*/

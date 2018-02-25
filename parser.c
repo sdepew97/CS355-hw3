@@ -108,8 +108,8 @@ int perform_parse()
 	char *line = NULL;
 
 	/* readline causes leak */
-	line = "exit\0";
-//	line = readline(PROMPT);
+	//line = "exit\0";
+	line = readline(PROMPT);
 
 	/* handle c-d */
 	if (line == NULL) {
@@ -168,6 +168,7 @@ int perform_parse()
 			}
 
 			cur_job->next_job = new_job;
+            cur_job->pgid = 0;
 			cur_job = new_job;
             //TODO: determine if this line is needed here free(token);
 		}
