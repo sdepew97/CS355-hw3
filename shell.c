@@ -103,7 +103,6 @@ void initializeShell() {
         signal(SIGTSTP, SIG_IGN);
         signal(SIGTTIN, SIG_IGN);
         signal(SIGTTOU, SIG_IGN);
-        //signal(SIGCHLD, SIG_IGN);
 
         //register a signal handler for SIGCHILD
         /* Handle Signal */
@@ -177,6 +176,8 @@ int isBackgroundJob(job* job1) {
 void childReturning(int sig, siginfo_t *siginfo, void *context) {
     printf("child handler hit with code");
     printf("%d\n", siginfo->si_code);
+    printf("signal number %d\n", siginfo->si_signo);
+    //if(siginfo->)
 }
 
 /* background running process*/
@@ -362,6 +363,7 @@ void put_job_in_foreground (job *j, int cont) {
     /* Wait for it to report.  */
     //wait_for_job(j); //TODO: wait for job here (add further code!!)?
     waitpid (WAIT_ANY, &status, WUNTRACED);
+    //waitpid (WAIT_ANY, &status, WUNTRACED | WNOHANG);
 
     /* Put the shell back in the foreground.  */
     tcsetpgrp(shell_terminal, shell_pgid);
