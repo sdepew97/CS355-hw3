@@ -179,7 +179,8 @@ int isBackgroundJob(job* job1) {
 /* child process has terminated and so we need to remove the process from the linked list (by pid).
  * We would call this function in the signal handler when getting a SIGCHLD signal. */
 void childReturning(int sig, siginfo_t *siginfo, void *context) {
-    printf("child handler hit\n");
+    printf("child handler hit with code");
+    printf("%d\n", siginfo->si_code);
 }
 
 /* background running process*/
@@ -530,7 +531,7 @@ int kill_builtin(char **args) {
 int jobs_builtin(char **args) {
     job *currentJob = list_of_jobs;
     process *currentProcess;
-   // int numberOfStats = 3;
+    // int numberOfStats = 3;
 
     if (currentJob != NULL) {
         currentProcess = currentJob->first_process;
@@ -628,10 +629,11 @@ int background_builtin(char **args) {
             currentNode ++;
             //found your node
             if(currentNode == number) {
-
+                put_job_in_background(currentJob, TRUE);
+                return TRUE;
             }
             else {
-                currentJob->next_job;
+                currentJob = currentJob->next_job;
             }
         }
 
