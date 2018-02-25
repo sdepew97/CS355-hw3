@@ -42,28 +42,31 @@ int main (int argc, char **argv) {
     process p;
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
-
     while (!EXIT) {
         perform_parse();
 
         job *currentJob = all_jobs;
-
-        while (currentJob != NULL) {
+   
+        while (currentJob != NULL) {  
             launchJob(currentJob, !(currentJob->run_in_background));
 
+            
             //get next job
             currentJob = currentJob->next_job;
         }
-        printf("EXIT VALUE %d\n", EXIT);
-        //break;
+        // printf("EXIT VALUE %d\n", EXIT);
+        free_all_jobs();
+        break;
+        
     }
 
     /* use case example to get second token */
     /* NOTE EXAMPLE HARDCODED INTO parse.c b/ memory leaks w/ readline */
-    printoutargs();
 
-    /* free memory for all_jobs -- should be called after every prompt */
-    free_all_jobs();
+    // printoutargs();
+
+
+   
 
     return 0;
 }
@@ -90,6 +93,7 @@ void printoutargs() {
 void initializeShell() {
     /* See if we are running interactively.  */
     shell_terminal = STDIN_FILENO;
+    // printf("shell term %d \n");
     shell_is_interactive = isatty(shell_terminal);
 
     if (shell_is_interactive) {
@@ -229,6 +233,8 @@ int isBuiltInCommand(process cmd) {
 }
 
 int process_equals(process process1, builtin builtin1) {
+    /* problem ocurring with white space args -- temporary fix, need to make sure parser doesn't give back whitespace commands */
+    if (process1.args[0] == NULL) { return FALSE; }
     int compare_value = strcmp(process1.args[0], builtin1.tag);
     if (compare_value == FALSE) {
         return TRUE;
@@ -253,12 +259,11 @@ int executeBuiltInCommand(process *process1, int index) {
 void launchJob(job *j, int foreground) {
     process *p;
     pid_t pid;
-
     for (p = j->first_process; p; p = p->next_process) {
 
         int isBuiltIn = isBuiltInCommand(*p);
-
-        printf("is built in %d\n", isBuiltIn);
+        
+        // printf("is built in %d\n", isBuiltIn);
 
         //run as a built-in command
         if (isBuiltIn != NOT_FOUND) {
@@ -268,9 +273,12 @@ void launchJob(job *j, int foreground) {
         else {
             /* Fork the child processes.  */
             pid = fork();
-            if (pid == 0)
+            if (pid == 0) {
+                // printf("%d pgid launch \n", j->pgid );
                 /* This is the child process.  */
+
                 launchProcess(p, j->pgid, j->stdin, j->stdout, j->stderr, foreground);
+            }
             else if (pid < 0) {
                 /* The fork failed.  */
                 perror("fork");
@@ -279,8 +287,10 @@ void launchJob(job *j, int foreground) {
                 /* This is the parent process.  */
                 p->pid = pid;
 
-                if (!j->pgid)
+                if (!j->pgid) {
                     j->pgid = pid;
+                }
+
                 setpgid(pid, j->pgid); //TODO: check process group ids being altered correctly
 
             }
@@ -304,15 +314,20 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
        the terminal, if appropriate.
        This has to be done both by the shell and in the individual
        child processes because of potential race conditions.  */ //TODO: consider race conditions arising here!!
-    pid = getpid();
-    if (pgid == 0) {
+    pid = getpid(); 
+    // printf("%d \n", pgid);
+    if (pgid == 0) {   
         pgid = pid;
     }
 
     setpgid(pid, pgid);
 
-    if (foreground)
-        tcsetpgrp(shell_terminal, pgid);
+    if (foreground) {
+        if (tcsetpgrp(shell_terminal, pgid) < 0) {
+            perror("tcsetpgrp");
+            exit(EXIT_FAILURE);
+        }
+    }
 
     /* Set the handling for job control signals back to the default.  */ //TODO: set handling properly to what we want!!
     signal(SIGINT, SIG_DFL);
@@ -337,7 +352,8 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
     }
 
     /* Exec the new process.  Make sure we exit.  */
-    execvp(p->args[0], p->args);
+    if (p->args[0] != NULL)
+        execvp(p->args[0], p->args);
     perror("execvp");
     exit(TRUE);
 }
@@ -358,7 +374,6 @@ void put_job_in_foreground (job *j, int cont) {
             perror("kill (SIGCONT)");
     }
 
-    printf("job in foreground\n");
 
     /* Wait for it to report.  */
     //wait_for_job(j); //TODO: wait for job here (add further code!!)?
