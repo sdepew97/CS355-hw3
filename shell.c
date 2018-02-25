@@ -87,6 +87,9 @@ void printoutargs() {
 /* Make sure the shell is running interactively as the foreground job
    before proceeding. */ //copied and pasted from https://www.gnu.org/software/libc/manual/html_node/Initializing-the-Shell.html
 void initializeShell() {
+    /* malloc space for the list */
+//    list_of_jobs = malloc(sizeof(job));
+
     /* See if we are running interactively.  */
     shell_terminal = STDIN_FILENO;
     shell_is_interactive = isatty(shell_terminal);
@@ -368,7 +371,6 @@ void put_job_in_foreground (job *j, int cont) {
     /* Wait for it to report.  */
     //wait_for_job(j); //TODO: wait for job here (add further code!!)?
     waitpid (WAIT_ANY, &status, WUNTRACED);
-    //waitpid (WAIT_ANY, &status, WUNTRACED | WNOHANG);
 
     /* Put the shell back in the foreground.  */
     tcsetpgrp(shell_terminal, shell_pgid);
@@ -380,20 +382,21 @@ void put_job_in_foreground (job *j, int cont) {
 
 /* Put a job in the background.  If the cont argument is true, send
    the process group a SIGCONT signal to wake it up.  */
-
 void put_job_in_background (job *j, int cont) {
     /* Add job to the background list */
     //first job
     int i=0;
     if(list_of_jobs == NULL) {
-        job *first_job = malloc(sizeof(job)); //TODO: make sure list is freed at the end!!
-        first_job = j;
+//        job *first_job = malloc(sizeof(job)); //TODO: make sure list is freed at the end!!
+//        first_job = j;
         list_of_jobs = first_job;
     } else { //there are already jobs in the list
         job *current_job = list_of_jobs;
+        job *next_job = current_job->next_job;
 
-        while(current_job!=NULL) {
-            current_job = current_job->next_job; //get to the end of the list
+        while(next_job!=NULL) {
+            current_job = next_job; //get to the end of the list
+            next_job = current_job->next_job;
         }
 
         //insert j at the end of the list

@@ -4,7 +4,15 @@ Known Bugs:
 3) potential concurrency issues, since SIGCHLD is not yet implemented at all...
 4) segfault in split whitespace
 5) issue with backgrounding jobs that causes core dump to occur
-6) ==24663== Conditional jump or move depends on uninitialised value(s)
-   ==24663==    at 0x109965: launchProcess (in /home/sdepew/CS355/hw3/shell)
-   ==24663==    by 0x10988D: launchJob (in /home/sdepew/CS355/hw3/shell)
-   ==24663==    by 0x1091BC: main (in /home/sdepew/CS355/hw3/shell) (What does this mean!?)
+6) "cd.." causes a memory leak
+
+==25223== 55 bytes in 8 blocks are definitely lost in loss record 14 of 46
+==25223==    at 0x4C2CEDF: malloc (vg_replace_malloc.c:299)
+==25223==    by 0x4E736B8: xmalloc (in /usr/lib/libreadline.so.7.0)
+==25223==    by 0x4E50355: readline_internal_teardown (in /usr/lib/libreadline.so.7.0)
+==25223==    by 0x4E514F1: readline (in /usr/lib/libreadline.so.7.0)
+==25223==    by 0x10A824: perform_parse (in /home/sdepew/CS355/hw3/shell)
+==25223==    by 0x109192: main (in /home/sdepew/CS355/hw3/shell)
+
+7) try to background job and get infinite loop..
+8)
