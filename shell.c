@@ -377,7 +377,7 @@ void put_job_in_background (job *j, int cont) {
     /* Add job to the background list */
     //first job
     int i=0;
-    if(list_of_jobs = NULL) {
+    if(list_of_jobs == NULL) {
         job *first_job = malloc(sizeof(job)); //TODO: make sure list is freed at the end!!
         first_job = j;
         list_of_jobs = first_job;
@@ -398,11 +398,13 @@ void put_job_in_background (job *j, int cont) {
             perror ("kill (SIGCONT)");
 }
 
-int arrayLength(void **array) {
+int arrayLength(char **array) {
     int i = 0;
     while (array[i] != NULL) {
         i++;
     }
+
+    return i;
 }
 
 //TODO: Implement all built in functions to use in the program
@@ -422,12 +424,12 @@ int kill_builtin(char **args) {
     int maxElements = 3;
 
     //get args length
-    int argsLength = argsLength(args);
+    int argsLength = arrayLength(args);
 
     if (argsLength < minElements || argsLength > maxElements) {
         //invalid arguments
         return FALSE;
-    } else if (arsLength == maxElements) {
+    } else if (argsLength == maxElements) {
         if (!strcmp(args[flagLocation],
                     flag)) { //check that -9 flag was input correctly, otherwise try sending kill with pid
             //(error checking gotten from stack overflow)
@@ -513,7 +515,7 @@ int kill_builtin(char **args) {
 int jobs_builtin(char **args) {
     job *currentJob = list_of_jobs;
     process *currentProcess;
-    int numberofStats = 3;
+   // int numberOfStats = 3;
 
     if (currentJob != NULL) {
         currentProcess = currentJob->first_process;
@@ -521,7 +523,7 @@ int jobs_builtin(char **args) {
 
     int jobID = 1;
 
-    char *status[numberofStats] = {running, stopped, done};
+    char *status[] = {running, stopped, done};
 
     while (currentJob != NULL) {
         while (currentProcess != NULL) {
@@ -540,7 +542,7 @@ int jobs_builtin(char **args) {
 /* Method that sends continue signal to suspended process in background -- this is bg*/
 int background_builtin(char **args) {
     //get size of args
-    int argsLength = argsLength(args);
+    int argsLength = arrayLength(args);
     int locationOfPercent = 1;
     int minArgsLength = 1;
     int maxArgsLength = 2;
@@ -552,16 +554,19 @@ int background_builtin(char **args) {
 
     if (argsLength == minArgsLength) {
         //bring back tail of jobs list, if it exists
-        job currentJob = list_of_jobs;
+        job *currentJob = list_of_jobs;
+        job *nextJob = NULL;
         if (currentJob == NULL) {
             printError("I am sorry, but that job does not exist.\n");
             return FALSE;
         }
 
         while (currentJob != NULL) {
-            if (currentJob.next_job == NULL) {
+            nextJob = currentJob -> next_job;
+            if (nextJob == NULL) {
                 break; //want to bring back current job
             }
+            currentJob = currentJob->next_job;
         }
 
         put_job_in_background(currentJob, TRUE);
@@ -601,15 +606,32 @@ int background_builtin(char **args) {
         }
 
         //have location now in linked list
+        int currentNode = 0;
+        job *currentJob = list_of_jobs;
 
+        while (currentJob != NULL) {
+            currentNode ++;
+            //found your node
+            if(currentNode == number) {
+
+            }
+            else {
+                currentJob->next_job;
+            }
+        }
+
+        //node was not found!
+        if(currentNode < number) {
+            printError("I am sorry, but that job does not exist.\n");
+        }
     }
 
     return FALSE;
 }
 
 /* Method that uses tcsetpgrp() to foreground the process -- this is fg*/
-int foreground_builtin(job *job1, process *process1) {
-    put_job_in_foreground(job1, TRUE);
+int foreground_builtin(char** args) {
+    //put_job_in_foreground(job1, TRUE);
     return TRUE;
 }
 

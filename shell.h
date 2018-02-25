@@ -57,6 +57,8 @@ typedef struct job {
 
 void printoutargs();
 
+int arrayLength(char **array);
+
 /* make structs for built in commands */
 void buildBuiltIns();
 
