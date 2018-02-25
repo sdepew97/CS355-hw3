@@ -10,6 +10,7 @@
 #include <limits.h>
 
 job *all_jobs;
+job *list_of_jobs = NULL;
 pid_t shell_pgid;
 struct termios shell_tmodes;
 int shell_terminal;
@@ -236,12 +237,12 @@ int process_equals(process process1, builtin builtin1) {
 
 /* Passes in the built-in command to be executed along with the index of the command in the allBuiltIns array. This method returns true upon success and false upon failure/error. */
 int executeBuiltInCommand(process *process1, int index) {
-    //give process foreground
+    //TODO: give process foreground
 
     //execute built in (testing...)
     int success =(*(allBuiltIns[index].function))(process1->args);
 
-    //restore shell (if needed?)
+    //TODO: restore shell (if needed?)
 
     //return success; //for success
     return TRUE;
@@ -355,7 +356,7 @@ void put_job_in_foreground (job *j, int cont) {
             perror("kill (SIGCONT)");
     }
 
-    printf("hello world\n");
+    printf("job in foreground\n");
 
     /* Wait for it to report.  */
     //wait_for_job(j); //TODO: wait for job here (add further code!!)?
@@ -373,69 +374,103 @@ void put_job_in_foreground (job *j, int cont) {
    the process group a SIGCONT signal to wake it up.  */
 
 void put_job_in_background (job *j, int cont) {
+    /* Add job to the background list */
+    //first job
+    int i=0;
+    if(list_of_jobs = NULL) {
+        job *first_job = malloc(sizeof(job)); //TODO: make sure list is freed at the end!!
+        first_job = j;
+        list_of_jobs = first_job;
+    } else { //there are already jobs in the list
+        job *current_job = list_of_jobs;
+
+        while(current_job!=NULL) {
+            current_job = current_job->next_job; //get to the end of the list
+        }
+
+        //insert j at the end of the list
+        current_job->next_job = j;
+    }
+
     /* Send the job a continue signal, if necessary.  */
     if (cont)
         if (kill (-j->pgid, SIGCONT) < 0)
             perror ("kill (SIGCONT)");
 }
 
+int arrayLength(void **array) {
+    int i = 0;
+    while (array[i] != NULL) {
+        i++;
+    }
+}
+
 //TODO: Implement all built in functions to use in the program
 /*Method that exits the shell. This command sets the global EXIT variable that breaks out of the while loop in the main function.*/
-int exit_builtin(char** args) {
+int exit_builtin(char **args) {
     EXIT = TRUE;
     return EXIT; //success
 }
 
 /* Method to take a job id and send a SIGTERM to terminate the process.*/
-int kill_builtin(char** args) {
+int kill_builtin(char **args) {
     char *flag = "-9\0";
-    if (args[1] == NULL) {
+    int flagLocation = 1;
+    int pidLocationNoFlag = 1;
+    int pidLocation = 2;
+    int minElements = 2;
+    int maxElements = 3;
+
+    //get args length
+    int argsLength = argsLength(args);
+
+    if (argsLength < minElements || argsLength > maxElements) {
         //invalid arguments
         return FALSE;
-    }
-        //check that -9 flag was input correctly, otherwise try sending kill with pid
-    else if (!strcmp(args[1], flag)) {
-        //(error checking gotten from stack overflow)
-        const char *nptr = args[2];                     /* string to read as a PID      */
-        char *endptr = NULL;                            /* pointer to additional chars  */
-        int base = 10;                                  /* numeric base (default 10)    */
-        long long int number = 0;                       /* variable holding return      */
+    } else if (arsLength == maxElements) {
+        if (!strcmp(args[flagLocation],
+                    flag)) { //check that -9 flag was input correctly, otherwise try sending kill with pid
+            //(error checking gotten from stack overflow)
+            const char *nptr = args[pidLocation];                     /* string to read as a PID      */
+            char *endptr = NULL;                            /* pointer to additional chars  */
+            int base = 10;                                  /* numeric base (default 10)    */
+            long long int number = 0;                       /* variable holding return      */
 
-        /* reset errno to 0 before call */
-        errno = 0;
+            /* reset errno to 0 before call */
+            errno = 0;
 
-        /* call to strtol assigning return to number */
-        number = strtoll(nptr, &endptr, base);
+            /* call to strtol assigning return to number */
+            number = strtoll(nptr, &endptr, base);
 
-        /* test return to number and errno values */
-        if (nptr == endptr) {
-            printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
-            return FALSE;
-        } else if (errno == ERANGE && number == LONG_MIN) {
-            printf(" number : %lld  invalid  (underflow occurred)\n", number);
-            return FALSE;
-        } else if (errno == ERANGE && number == LONG_MAX) {
-            printf(" number : %lld  invalid  (overflow occurred)\n", number);
-            return FALSE;
-        } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
-            printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
-            return FALSE;
-        } else if (errno != 0 && number == 0) {
-            printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
-            return FALSE;
-        } else if (errno == 0 && nptr && *endptr != 0) {
-            printf(" number : %lld    invalid  (since additional characters remain)\n", number);
-            return FALSE;
+            /* test return to number and errno values */
+            if (nptr == endptr) {
+                printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
+                return FALSE;
+            } else if (errno == ERANGE && number == LONG_MIN) {
+                printf(" number : %lld  invalid  (underflow occurred)\n", number);
+                return FALSE;
+            } else if (errno == ERANGE && number == LONG_MAX) {
+                printf(" number : %lld  invalid  (overflow occurred)\n", number);
+                return FALSE;
+            } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
+                printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
+                return FALSE;
+            } else if (errno != 0 && number == 0) {
+                printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
+                return FALSE;
+            } else if (errno == 0 && nptr && *endptr != 0) {
+                printf(" number : %lld    invalid  (since additional characters remain)\n", number);
+                return FALSE;
+            }
+
+            pid_t pid = number;
+            kill(pid, SIGKILL);
+            return TRUE;
         }
-
-        //passed all the if statements and so can assigned the seconds value as the one input
-        pid_t pid = number;
-        kill(pid, SIGKILL);
-        return TRUE;
-    } else {
+    } else { //we have no flags and only kill with a pid
         //PID is second argument
         //(error checking gotten from stack overflow)
-        const char *nptr = args[1];                     /* string to read as a PID      */
+        const char *nptr = args[pidLocationNoFlag];                     /* string to read as a PID      */
         char *endptr = NULL;                            /* pointer to additional chars  */
         int base = 10;                                  /* numeric base (default 10)    */
         long long int number = 0;                       /* variable holding return      */
@@ -467,7 +502,6 @@ int kill_builtin(char** args) {
             return FALSE;
         }
 
-        //passed all the if statements and so can assigned the seconds value as the one input
         pid_t pid = number;
         kill(pid, SIGTERM);
         return TRUE;
@@ -475,11 +509,11 @@ int kill_builtin(char** args) {
     return FALSE;
 }
 
-//TODO: figure out why this is segfaulting?
 /* Method to iterate through the linked list and print out node parameters. */
-int jobs_builtin(char** args) {
-    job *currentJob = all_jobs;
+int jobs_builtin(char **args) {
+    job *currentJob = list_of_jobs;
     process *currentProcess;
+    int numberofStats = 3;
 
     if (currentJob != NULL) {
         currentProcess = currentJob->first_process;
@@ -487,7 +521,7 @@ int jobs_builtin(char** args) {
 
     int jobID = 1;
 
-    char *status[3] = {running, stopped, done};
+    char *status[numberofStats] = {running, stopped, done};
 
     while (currentJob != NULL) {
         while (currentProcess != NULL) {
@@ -504,12 +538,78 @@ int jobs_builtin(char** args) {
 }
 
 /* Method that sends continue signal to suspended process in background -- this is bg*/
-int background_builtin(char** args) {
-    return 0;
+int background_builtin(char **args) {
+    //get size of args
+    int argsLength = argsLength(args);
+    int locationOfPercent = 1;
+    int minArgsLength = 1;
+    int maxArgsLength = 2;
+
+    if (argsLength < minArgsLength || argsLength > maxArgsLength) {
+        printError("I am sorry, but that is an invalid list of commands to bg.\n");
+        return FALSE;
+    }
+
+    if (argsLength == minArgsLength) {
+        //bring back tail of jobs list, if it exists
+        job currentJob = list_of_jobs;
+        if (currentJob == NULL) {
+            printError("I am sorry, but that job does not exist.\n");
+            return FALSE;
+        }
+
+        while (currentJob != NULL) {
+            if (currentJob.next_job == NULL) {
+                break; //want to bring back current job
+            }
+        }
+
+        put_job_in_background(currentJob, TRUE);
+        return TRUE; //success!
+    } else if (argsLength == maxArgsLength) {
+        //(error checking gotten from stack overflow)
+        const char *nptr = args[locationOfPercent];     /* string to read as a number   */
+        char *endptr = NULL;                            /* pointer to additional chars  */
+        int base = 10;                                  /* numeric base (default 10)    */
+        long long int number = 0;                       /* variable holding return      */
+
+        /* reset errno to 0 before call */
+        errno = 0;
+
+        /* call to strtol assigning return to number */
+        number = strtoll(nptr, &endptr, base);
+
+        /* test return to number and errno values */
+        if (nptr == endptr) {
+            printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
+            return FALSE;
+        } else if (errno == ERANGE && number == LONG_MIN) {
+            printf(" number : %lld  invalid  (underflow occurred)\n", number);
+            return FALSE;
+        } else if (errno == ERANGE && number == LONG_MAX) {
+            printf(" number : %lld  invalid  (overflow occurred)\n", number);
+            return FALSE;
+        } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
+            printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
+            return FALSE;
+        } else if (errno != 0 && number == 0) {
+            printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
+            return FALSE;
+        } else if (errno == 0 && nptr && *endptr != 0) {
+            printf(" number : %lld    invalid  (since additional characters remain)\n", number);
+            return FALSE;
+        }
+
+        //have location now in linked list
+
+    }
+
+    return FALSE;
 }
 
 /* Method that uses tcsetpgrp() to foreground the process -- this is fg*/
-int foreground_builtin(char** args) {
-    return 0;
+int foreground_builtin(job *job1, process *process1) {
+    put_job_in_foreground(job1, TRUE);
+    return TRUE;
 }
 
