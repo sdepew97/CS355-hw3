@@ -389,7 +389,7 @@ void put_job_in_background (job *j, int cont) {
     if(list_of_jobs == NULL) {
 //        job *first_job = malloc(sizeof(job)); //TODO: make sure list is freed at the end!!
 //        first_job = j;
-        list_of_jobs = first_job;
+        list_of_jobs = j;
     } else { //there are already jobs in the list
         job *current_job = list_of_jobs;
         job *next_job = current_job->next_job;
