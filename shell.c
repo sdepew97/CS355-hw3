@@ -613,10 +613,11 @@ int background_builtin(char **args) {
             currentNode ++;
             //found your node
             if(currentNode == number) {
-
+                put_job_in_background(currentJob, TRUE);
+                return TRUE;
             }
             else {
-                currentJob->next_job;
+                currentJob = currentJob->next_job;
             }
         }
 
