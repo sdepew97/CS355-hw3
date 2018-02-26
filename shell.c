@@ -175,15 +175,13 @@ int isBackgroundJob(job* job1) {
 /* child process has terminated and so we need to remove the process from the linked list (by pid).
  * We would call this function in the signal handler when getting a SIGCHLD signal. */
 void childReturning(int sig, siginfo_t *siginfo, void *context) {
-    //printf("child handler hit with code");
-    //printf("%d\n", siginfo->si_code);
-    //printf("signal number %d\n", siginfo->si_signo);
-    //if(siginfo->)
-}
+//    printf("child handler hit with code:");
+//    printf("%d\n", siginfo->si_code);
+//    printf("signal number %d\n", siginfo->si_signo);
 
-/* background running process*/
-void suspendProcessInBackground(int sig, siginfo_t *siginfo, void *context) {
-    printf("suspend hit\n");
+    if(siginfo->si_signo == SIGTSTP) {
+
+    }
 }
 
 /* This method is simply the remove node method called when a node needs to be removed from the list of jobs. */
@@ -319,22 +317,10 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
     /* Set the handling for job control signals back to the default.  */ //TODO: set handling properly to what we want!!
     signal(SIGINT, SIG_DFL);
     signal(SIGQUIT, SIG_DFL);
-    //signal(SIGTSTP, SIG_DFL);
+    signal(SIGTSTP, SIG_DFL);
     signal(SIGTTIN, SIG_DFL);
     signal(SIGTTOU, SIG_DFL);
     signal(SIGCHLD, SIG_DFL);
-
-
-    //register a signal handler for SIGTSTP
-    /* Handle Signal */
-    struct sigaction sigstp;
-    memset(&sigstp, 0, sizeof(sigstp));
-    sigstp.sa_sigaction = &suspendProcessInBackground;
-    sigstp.sa_flags = SA_SIGINFO;
-    if (sigaction(SIGTSTP, &sigstp, NULL) < 0) {
-        printError("Error with sigaction for sigstp.\n");
-        return;
-    }
 
     /* Set the standard input/output channels of the new process.  */
     if (infile != STDIN_FILENO) {

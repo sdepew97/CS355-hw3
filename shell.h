@@ -76,9 +76,6 @@ int isBackgroundJob(job* job1);
  * We would call this function in the signal handler when getting a SIGCHLD signal. */
 void childReturning(int sig, siginfo_t *siginfo, void *context);
 
-/* background running process*/
-void suspendProcessInBackground(int sig, siginfo_t *siginfo, void *context);
-
 /* This method is simply the remove node method called when a node needs to be removed from the list of jobs. */
 void removeNode(pid_t pidToRemove);
 

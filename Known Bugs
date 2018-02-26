@@ -15,7 +15,7 @@ Known Bugs:
 ==25223==    by 0x109192: main (in /home/sdepew/CS355/hw3/shell)
 
 7) try to background job and get infinite loop..
-8)
+8) emacs, ls, then jobs and get infinite loop
 
 
 To Be Done:
