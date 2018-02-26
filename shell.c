@@ -758,7 +758,7 @@ void foreground_helper(background_job *bj) {
 
 /* Method that uses tcsetpgrp() to foreground the process -- this is fg*/
 int foreground_builtin(char** args) {
-    
+
     /*
      * Basic functionality included (ie foreground last pid)
      * to test to make sure this is working
@@ -770,7 +770,7 @@ int foreground_builtin(char** args) {
     background_job *bj = get_background_from_pgid(pgid);
 
     sigset_t mask;
-    sigemptyset (&mask);
+    sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
@@ -783,16 +783,4 @@ int foreground_builtin(char** args) {
 
 
     return TRUE;
-}
-
-void free_all_jobs() {
-    job *currentJob = all_jobs;
-
-    while(currentJob!=NULL) {
-
-    }
-}
-
-void free_background_jobs() {
-
 }
