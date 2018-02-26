@@ -213,7 +213,7 @@ void job_suspend_helper(pid_t calling_id, int cont, int status) {
 void childReturning(int sig, siginfo_t *siginfo, void *context) {
     int signum = siginfo->si_signo;
     pid_t calling_id = siginfo->si_pid;
-    printf("handler hit, pid:%d\n", calling_id);
+    printf("handler hit, pid:%d, signal%d\n", calling_id, signum);
 
     if (signum == SIGCHLD) { //todo: ask about choices here; I don't think this is going to work...
         if (siginfo->si_status != 0) {
