@@ -101,9 +101,9 @@ void initializeShell() {
         /* Ignore interactive and job-control signals.  */
         signal(SIGINT, SIG_IGN);
         signal(SIGQUIT, SIG_IGN);
-        signal(SIGTSTP, SIG_IGN);
         signal(SIGTTIN, SIG_IGN);
         signal(SIGTTOU, SIG_IGN);
+        signal(SIGTSTP, SIG_IGN);
 
         //register a signal handler for SIGCHILD
         /* Handle Signal */
@@ -183,7 +183,7 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
 
 /* background running process*/
 void suspendProcessInBackground(int sig, siginfo_t *siginfo, void *context) {
-
+    printf("suspend hit\n");
 }
 
 /* This method is simply the remove node method called when a node needs to be removed from the list of jobs. */
@@ -231,7 +231,7 @@ int isBuiltInCommand(process cmd) {
 }
 
 int process_equals(process process1, builtin builtin1) {
-    /* problem ocurring with white space args -- temporary fix, need to make sure parser doesn't give back whitespace commands */
+    /* problem occurring with white space args -- temporary fix, need to make sure parser doesn't give back whitespace commands */
     if (process1.args[0] == NULL) { return FALSE; }
     int compare_value = strcmp(process1.args[0], builtin1.tag);
     if (compare_value == FALSE) {
@@ -243,15 +243,8 @@ int process_equals(process process1, builtin builtin1) {
 
 /* Passes in the built-in command to be executed along with the index of the command in the allBuiltIns array. This method returns true upon success and false upon failure/error. */
 int executeBuiltInCommand(process *process1, int index) {
-    //TODO: give process foreground
-
     //execute built in (testing...)
-    int success =(*(allBuiltIns[index].function))(process1->args);
-
-    //TODO: restore shell (if needed?)
-
-    //return success; //for success
-    return TRUE;
+    return (*(allBuiltIns[index].function))(process1->args);
 }
 
 void launchJob(job *j, int foreground) {
@@ -326,10 +319,22 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
     /* Set the handling for job control signals back to the default.  */ //TODO: set handling properly to what we want!!
     signal(SIGINT, SIG_DFL);
     signal(SIGQUIT, SIG_DFL);
-    signal(SIGTSTP, SIG_DFL);
+//    signal(SIGTSTP, SIG_DFL);
     signal(SIGTTIN, SIG_DFL);
     signal(SIGTTOU, SIG_DFL);
     signal(SIGCHLD, SIG_DFL);
+
+
+    //register a signal handler for SIGTSTP
+    /* Handle Signal */
+    struct sigaction sigstp;
+    memset(&sigstp, 0, sizeof(sigstp));
+    sigstp.sa_sigaction = &suspendProcessInBackground;
+    sigstp.sa_flags = SA_SIGINFO;
+    if (sigaction(SIGCHLD, &sigstp, NULL) < 0) {
+        printError("Error with sigaction for sigstp.\n");
+        return;
+    }
 
     /* Set the standard input/output channels of the new process.  */
     if (infile != STDIN_FILENO) {
@@ -367,7 +372,6 @@ void put_job_in_foreground (job *j, int cont) {
         if (kill(-j->pgid, SIGCONT) < 0)
             perror("kill (SIGCONT)");
     }
-
 
     /* Wait for it to report.  */
     //wait_for_job(j); //TODO: wait for job here (add further code!!)?
