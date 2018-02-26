@@ -16,3 +16,9 @@ Known Bugs:
 
 7) try to background job and get infinite loop..
 8)
+
+
+To Be Done:
+1) Concurrency
+2) SIGCHLD handler
+3) CTRL-Z functionality

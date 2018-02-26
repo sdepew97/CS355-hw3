@@ -23,10 +23,11 @@ char *jobs_string = "jobs\0";
 char *fg_string = "fg\0";
 char *bg_string = "bg\0";
 
-//strings for jobs printout
+//strings and variables for jobs printout
 char *running = "Running\0";
-char *stopped = "Stopped\0";
-char *done = "Done\0";
+char *suspended = "Suspended\0";
+int RUNNING = 0;
+int SUSPENDED = 1;
 
 char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS];
 struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
@@ -383,30 +384,26 @@ void put_job_in_foreground (job *j, int cont) {
 /* Put a job in the background.  If the cont argument is true, send
    the process group a SIGCONT signal to wake it up.  */
 void put_job_in_background (job *j, int cont) {
-    /* Add job to the background list */
-    //first job
-    int i=0;
-    if(list_of_jobs == NULL) {
-//        job *first_job = malloc(sizeof(job)); //TODO: make sure list is freed at the end!!
-//        first_job = j;
+    /* Add job to the background list with status of running */
+    j->status = RUNNING;
+    if (list_of_jobs == NULL) {
         list_of_jobs = j;
     } else { //there are already jobs in the list
         job *current_job = list_of_jobs;
         job *next_job = current_job->next_job;
 
-        while(next_job!=NULL) {
+        while (next_job != NULL) {
             current_job = next_job; //get to the end of the list
             next_job = current_job->next_job;
         }
-
         //insert j at the end of the list
         current_job->next_job = j;
     }
 
     /* Send the job a continue signal, if necessary.  */
     if (cont)
-        if (kill (-j->pgid, SIGCONT) < 0)
-            perror ("kill (SIGCONT)");
+        if (kill(-j->pgid, SIGCONT) < 0)
+            perror("kill (SIGCONT)");
 }
 
 int arrayLength(char **array) {
@@ -526,26 +523,21 @@ int kill_builtin(char **args) {
 int jobs_builtin(char **args) {
     job *currentJob = list_of_jobs;
     process *currentProcess;
-    // int numberOfStats = 3;
-
-    if (currentJob != NULL) {
-        currentProcess = currentJob->first_process;
-    }
-
+    char *status[] = {running, suspended};
     int jobID = 1;
 
-    char *status[] = {running, stopped, done};
-
-    while (currentJob != NULL) {
-        while (currentProcess != NULL) {
+    if (currentJob == NULL) {
+        printError("I am sorry, there are no jobs in the list right now.\n");
+    } else {
+        while (currentJob != NULL) {
             //print out formatted information for processes in job
-            printf("[%d]\t %d %s \t\t %s\n", jobID, currentProcess->pid, status[currentProcess->status],
-                   currentProcess->args[0]); //TODO: fix for all arguments!
+            printf("[%d]\t %d %s \t\t %s\n", jobID, currentJob->pgid, status[currentJob->status], currentJob->job_string);
             jobID++;
-            currentProcess = currentProcess->next_process;
+
+            //get next job
+            currentJob = currentJob->next_job;
         }
-        //get next job
-        currentJob = currentJob->next_job;
+        return EXIT_SUCCESS;
     }
     return EXIT_FAILURE;
 }

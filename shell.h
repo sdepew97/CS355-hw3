@@ -47,6 +47,7 @@ typedef struct job {
     struct process *first_process;
     pid_t pgid;
     char *job_string;
+    int status;
     struct termios termios_modes;
     int stdin;
     int stdout;
