@@ -58,10 +58,9 @@ int main (int argc, char **argv) {
         // printf("%d \n", all_background_jobs->termios_modes.c_iflag);
     }
 
-    // free_background_jobs();
-    // printoutargs();
-
-    // return 0;
+    //free malloced memory
+    free_background_jobs();
+    return EXIT_SUCCESS;
 }
 
 void printoutargs() {
@@ -786,3 +785,14 @@ int foreground_builtin(char** args) {
     return TRUE;
 }
 
+void free_all_jobs() {
+    job *currentJob = all_jobs;
+
+    while(currentJob!=NULL) {
+
+    }
+}
+
+void free_background_jobs() {
+
+}
