@@ -549,7 +549,7 @@ int kill_builtin(char **args) {
 
     if (argsLength < minElements || argsLength > maxElements) {
         //invalid arguments
-        printError("I am sorry, but you have passed an invalid number of argumennts to kill.\n");
+        printError("I am sorry, but you have passed an invalid number of arguments to kill.\n");
         return FALSE;
     } else if (argsLength == maxElements) {
         if (!strcmp(args[flagLocation],
@@ -588,8 +588,16 @@ int kill_builtin(char **args) {
             }
 
             pid_t pid = number;
-            kill(pid, SIGKILL);
-            return TRUE;
+            printf("%d pid\n", pid);
+            if (kill(pid, SIGKILL) == -1) {
+                printError("I am sorry, an error occurred with kill.\n");
+                return FALSE; //error occurred
+            } else {
+                return TRUE;
+            }
+        } else {
+            printError("I am sorry, an error occurred with kill.\n");
+            return FALSE; //error occurred
         }
     } else { //we have no flags and only kill with a pid
         //PID is second argument
@@ -627,8 +635,13 @@ int kill_builtin(char **args) {
         }
 
         pid_t pid = number;
-        kill(pid, SIGTERM);
-        return TRUE;
+        printf("%d pid\n", pid);
+        if (kill(pid, SIGKILL) == -1) {
+            printError("I am sorry, an error occurred with kill.\n");
+            return FALSE; //error occurred
+        } else {
+            return TRUE;
+        }
     }
     return FALSE;
 }
