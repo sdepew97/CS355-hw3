@@ -318,6 +318,8 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
 
     setpgid(pid, pgid);
 
+    printf("pid: %d\n", pid);
+
     if (foreground) {
         if (tcsetpgrp(shell_terminal, pgid) < 0) {
             perror("tcsetpgrp");
