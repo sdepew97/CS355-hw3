@@ -215,7 +215,11 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
     pid_t calling_id = siginfo->si_pid;
     printf("handler hit, pid:%d, signal%d\n", calling_id, signum);
 
-    if (signum == SIGCHLD) { //todo: ask about choices here; I don't think this is going to work...
+    if (signum == SIGCHLD) {
+        //in the case of the child being killed, remove it from the list of jobs
+        if(siginfo->si_code == CLD_KILLED) {
+            trim_background_process_list(calling_id);
+        }
         if (siginfo->si_status != 0) {
             job_suspend_helper(calling_id, 0, SUSPENDED);
         }
