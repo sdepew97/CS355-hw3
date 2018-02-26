@@ -261,7 +261,7 @@ void launchJob(job *j, int foreground) {
 
         //run as a built-in command
         if (isBuiltIn != NOT_FOUND) {
-            printf("built in");
+            //printf("built in");
             executeBuiltInCommand(p, isBuiltIn);
         }
             //run through execvp
