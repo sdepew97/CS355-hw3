@@ -319,7 +319,7 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
     /* Set the handling for job control signals back to the default.  */ //TODO: set handling properly to what we want!!
     signal(SIGINT, SIG_DFL);
     signal(SIGQUIT, SIG_DFL);
-//    signal(SIGTSTP, SIG_DFL);
+    //signal(SIGTSTP, SIG_DFL);
     signal(SIGTTIN, SIG_DFL);
     signal(SIGTTOU, SIG_DFL);
     signal(SIGCHLD, SIG_DFL);
