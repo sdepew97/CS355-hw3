@@ -19,6 +19,7 @@ char *PROMPT = "$ ";
 tokenizer *t = NULL;
 tokenizer *pt;
 extern job *all_jobs;
+extern background_job *all_background_jobs;
 
 int split_white_space(char **user_input, char ***tokenized_input)
 {
@@ -114,7 +115,7 @@ int perform_parse()
 
 	/* readline causes leak */
     line = readline(PROMPT);
-	//line = "ls ; ";
+	// line = "ls ; ";
 
 	/* handle c-d */
 	if (line == NULL) {
@@ -204,7 +205,7 @@ int perform_parse()
 	}
 
 	free(t);
-	// free(line); 
+	free(line); 
 	free(cur_job);
 	return num_jobs;
 }
@@ -226,4 +227,11 @@ void free_all_jobs() {
         free(all_jobs);
         all_jobs = j;
     } 
+}
+
+void free_background_jobs() {
+	while (all_background_jobs != NULL) {
+		free(all_background_jobs->job_string);
+		all_background_jobs = all_background_jobs->next_background_job;
+	}
 }

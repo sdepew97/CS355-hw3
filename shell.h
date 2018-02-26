@@ -55,6 +55,14 @@ typedef struct job {
     struct job *next_job;
 } job;
 
+typedef struct background_job {
+    struct background_job *next_background_job;
+    pid_t pgid;
+    int status;
+    char *job_string;
+    struct termios termios_modes;
+} background_job;
+
 void printoutargs();
 
 int arrayLength(char **array);
@@ -91,13 +99,15 @@ int process_equals(process process1, builtin builtin1);
 /* Passes in the built-in command to be executed along with the index of the command in the allBuiltIns array. This method returns true upon success and false upon failure/error. */
 int executeBuiltInCommand(process *process1, int index);
 
+void free_background_jobs();
+
 /* Method to launch our process in either the foreground or the background. */
 //void launchProcess(process *process1, pid_t pgid, int foreground);
 
 void launchJob (job *j, int foreground);
 void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile, int foreground);
 void put_job_in_foreground (job *j, int cont);
-void put_job_in_background (job *j, int cont);
+void put_job_in_background (job *j, int cont, int status);
 
 /* Method to make sure the shell is running interactively as the foreground job before proceeding. Modeled after method found on https://www.gnu.org/software/libc/manual/html_mono/libc.html#Foreground-and-Background. */
 void initializeShell();
