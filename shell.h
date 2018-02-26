@@ -12,8 +12,7 @@
 
 #define BUFFERSIZE 4096
 #define RUNNING 0
-#define STOPPED 1
-#define DONE 2
+#define SUSPENDED 1
 #define FALSE 0
 #define TRUE 1
 #define NUMBER_OF_BUILT_IN_FUNCTIONS 5

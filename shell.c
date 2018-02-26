@@ -26,8 +26,6 @@ char *bg_string = "bg\0";
 //strings and variables for jobs printout
 char *running = "Running\0";
 char *suspended = "Suspended\0";
-int RUNNING = 0;
-int SUSPENDED = 1;
 
 char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS];
 struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
@@ -263,6 +261,7 @@ void launchJob(job *j, int foreground) {
 
         //run as a built-in command
         if (isBuiltIn != NOT_FOUND) {
+            printf("built in");
             executeBuiltInCommand(p, isBuiltIn);
         }
             //run through execvp
