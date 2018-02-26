@@ -549,6 +549,7 @@ int kill_builtin(char **args) {
 
     if (argsLength < minElements || argsLength > maxElements) {
         //invalid arguments
+        printError("I am sorry, but you have passed an invalid number of argumennts to kill.\n");
         return FALSE;
     } else if (argsLength == maxElements) {
         if (!strcmp(args[flagLocation],
