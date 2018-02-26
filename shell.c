@@ -217,10 +217,17 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
 
     if (signum == SIGCHLD) {
         //in the case of the child being killed, remove it from the list of jobs
-        if(siginfo->si_code == CLD_KILLED) {
-            trim_background_process_list(calling_id);
+        if(siginfo->si_code == CLD_KILLED || siginfo->si_code == CLD_DUMPED) {
+            trim_background_process_list(calling_id); //it has been killed and should be removed from the list of processes for job
         }
-        if (siginfo->si_status != 0) {
+        //else if (siginfo->si_status != 0) {
+        else if(siginfo->si_status == CLD_STOPPED) {
+            job_suspend_helper(calling_id, 0, SUSPENDED);
+        }
+        else if(siginfo->si_code == CLD_CONTINUED) {
+            printf("child continued");
+        }
+        else if (siginfo->si_status != 0) {
             job_suspend_helper(calling_id, 0, SUSPENDED);
         }
         else {
