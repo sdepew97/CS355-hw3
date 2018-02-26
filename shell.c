@@ -331,7 +331,7 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
     memset(&sigstp, 0, sizeof(sigstp));
     sigstp.sa_sigaction = &suspendProcessInBackground;
     sigstp.sa_flags = SA_SIGINFO;
-    if (sigaction(SIGCHLD, &sigstp, NULL) < 0) {
+    if (sigaction(SIGTSTP, &sigstp, NULL) < 0) {
         printError("Error with sigaction for sigstp.\n");
         return;
     }
