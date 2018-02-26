@@ -42,6 +42,9 @@ int main (int argc, char **argv) {
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
     while (!EXIT) {
+        if(list_of_jobs!=NULL) {
+            printf("copyOfJ's string for the job in main loop %s\n", list_of_jobs->job_string);
+        }
         perform_parse();
 
         job *currentJob = all_jobs;
@@ -86,9 +89,6 @@ void printoutargs() {
 /* Make sure the shell is running interactively as the foreground job
    before proceeding. */ //copied and pasted from https://www.gnu.org/software/libc/manual/html_node/Initializing-the-Shell.html
 void initializeShell() {
-    /* malloc space for the list */
-//    list_of_jobs = malloc(sizeof(job));
-
     /* See if we are running interactively.  */
     shell_terminal = STDIN_FILENO;
     shell_is_interactive = isatty(shell_terminal);
@@ -204,8 +204,9 @@ void removeNode(pid_t pidToRemove) {
             while (currentProcess != NULL) {
                 nextProcess = currentProcess->next_process;
                 if (nextProcess->pid == pidToRemove) {
-                    //found the pidToRemove and an reset pointers
+                    //found the pidToRemove, free, and an reset pointers
                     currentProcess->next_process = nextProcess->next_process;
+                    free(nextProcess);
                     return;
                 }
                 currentProcess = nextProcess;
@@ -221,10 +222,6 @@ void removeNode(pid_t pidToRemove) {
  * built-in commands and -1 if it is not in the array allBuiltIns
  */
 int isBuiltInCommand(process cmd) {
-    if(all_jobs != NULL) {
-        printf("value of first job string: %s\n", all_jobs->job_string);
-    }
-
     for(int i=0; i<NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
         if(process_equals(cmd, allBuiltIns[i])) {
             return i; //return index of command
@@ -290,7 +287,6 @@ void launchJob(job *j, int foreground) {
                 }
 
                 setpgid(pid, j->pgid); //TODO: check process group ids being altered correctly
-
             }
         }
     }
@@ -388,9 +384,14 @@ void put_job_in_foreground (job *j, int cont) {
 /* Put a job in the background.  If the cont argument is true, send
    the process group a SIGCONT signal to wake it up.  */
 void put_job_in_background (job *j, int cont) {
+    printf("j's string for the job %s\n", j->job_string);
     /* Add job to the background list with status of running */
     job *copyOfJ = malloc(sizeof(job));
     memcpy(copyOfJ, j, sizeof(job)); //copy over the node that will be deleted
+    char *string = malloc(sizeof(char *));
+    string = (*j).job_string;
+    copyOfJ ->job_string = string;
+    printf("copyOfJ's string for the job %s\n", copyOfJ->job_string);
     copyOfJ->status = RUNNING;
     if (list_of_jobs == NULL) {
         list_of_jobs = copyOfJ;
@@ -410,6 +411,7 @@ void put_job_in_background (job *j, int cont) {
     if (cont)
         if (kill(-j->pgid, SIGCONT) < 0)
             perror("kill (SIGCONT)");
+
 }
 
 int arrayLength(char **array) {
