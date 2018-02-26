@@ -187,6 +187,7 @@ void trim_background_process_list(pid_t pid_to_remove) {
             }
             else {
                 prev_background_job->next_background_job = cur_background_job->next_background_job;
+                return;
             }
         }
         else{
@@ -336,7 +337,7 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
     /* Exec the new process.  Make sure we exit.  */
     if (p->args[0] != NULL)
         execvp(p->args[0], p->args);
-    perror("execvp");
+    perror("-bash: ");
     exit(TRUE);
 }
 
@@ -368,23 +369,14 @@ void put_job_in_foreground (job *j, int cont) {
     tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
 }
 
-
-int lengthOf(char *str){
-    int i = 0;
-    while (str[i] != '\0') {
-        i++;
-    }
-    return i;
-}
-
 /* takes background job and gives it to background job */
 void simple_background_job_setup(background_job *dest, job *org, int status) 
 {
     dest->pgid = org->pgid;
     dest->status = status;
     dest->termios_modes = org->termios_modes; // <<< potential source of error here? valgrind and fg seems to be complaing about unitialized bytes
-    char *js = malloc(sizeof(char) * lengthOf(org->job_string) + 1);
-    strcpy(js, org->job_string);
+    char *js = malloc(sizeof(char) * lengthOf(org->full_job_string) + 1);
+    strcpy(js, org->full_job_string);
     dest->job_string = js;
     dest->next_background_job = NULL;
 }

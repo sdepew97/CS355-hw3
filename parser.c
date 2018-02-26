@@ -103,6 +103,15 @@ char *last_element_of(char *str)
 	else { return --i; }
 }
 
+
+int lengthOf(char *str){
+    int i = 0;
+    while (str[i] != '\0') {
+        i++;
+    }
+    return i;
+}
+
 /*
  * Transforms all jobs global into first job in job LL and returns the number of jobs to run
  * 
@@ -155,6 +164,9 @@ int perform_parse()
 		new_job = malloc(sizeof(job));
 		new_job->next_job = NULL;
 
+		char *fjs = malloc(lengthOf(token) + 1);
+
+		cur_job->full_job_string = strcpy(fjs, token);
 		cur_job->job_string = token;
 		cur_job->next_job = new_job;
 		cur_job->pgid = 0;
@@ -215,6 +227,7 @@ int perform_parse()
 void free_all_jobs() {
     while (all_jobs != NULL) {
         free(all_jobs->job_string);
+        free(all_jobs->full_job_string);
         process *temp_p = all_jobs->first_process;
         temp_p->next_process = NULL;
         while (temp_p != NULL) {
