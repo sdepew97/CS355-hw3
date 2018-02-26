@@ -221,6 +221,10 @@ void removeNode(pid_t pidToRemove) {
  * built-in commands and -1 if it is not in the array allBuiltIns
  */
 int isBuiltInCommand(process cmd) {
+    if(all_jobs != NULL) {
+        printf("value of first job string: %s\n", all_jobs->job_string);
+    }
+
     for(int i=0; i<NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
         if(process_equals(cmd, allBuiltIns[i])) {
             return i; //return index of command
@@ -263,6 +267,7 @@ void launchJob(job *j, int foreground) {
         if (isBuiltIn != NOT_FOUND) {
             //printf("built in");
             executeBuiltInCommand(p, isBuiltIn);
+            foreground = TRUE;
         }
             //run through execvp
         else {
@@ -384,9 +389,11 @@ void put_job_in_foreground (job *j, int cont) {
    the process group a SIGCONT signal to wake it up.  */
 void put_job_in_background (job *j, int cont) {
     /* Add job to the background list with status of running */
-    j->status = RUNNING;
+    job *copyOfJ = malloc(sizeof(job));
+    memcpy(copyOfJ, j, sizeof(job)); //copy over the node that will be deleted
+    copyOfJ->status = RUNNING;
     if (list_of_jobs == NULL) {
-        list_of_jobs = j;
+        list_of_jobs = copyOfJ;
     } else { //there are already jobs in the list
         job *current_job = list_of_jobs;
         job *next_job = current_job->next_job;
@@ -396,7 +403,7 @@ void put_job_in_background (job *j, int cont) {
             next_job = current_job->next_job;
         }
         //insert j at the end of the list
-        current_job->next_job = j;
+        current_job->next_job = copyOfJ;
     }
 
     /* Send the job a continue signal, if necessary.  */
