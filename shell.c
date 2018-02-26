@@ -220,13 +220,13 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
         if(siginfo->si_code == CLD_KILLED || siginfo->si_code == CLD_DUMPED) {
             trim_background_process_list(calling_id); //it has been killed and should be removed from the list of processes for job
         }
-        //else if (siginfo->si_status != 0) {
-        else if(siginfo->si_status == CLD_STOPPED) {
-            job_suspend_helper(calling_id, 0, SUSPENDED);
-        }
-        else if(siginfo->si_code == CLD_CONTINUED) {
-            printf("child continued");
-        }
+//        //else if (siginfo->si_status != 0) {
+//        else if(siginfo->si_status == CLD_STOPPED) {
+//            job_suspend_helper(calling_id, 0, SUSPENDED);
+//        }
+//        else if(siginfo->si_code == CLD_CONTINUED) {
+//            printf("child continued");
+//        }
         else if (siginfo->si_status != 0) {
             job_suspend_helper(calling_id, 0, SUSPENDED);
         }
@@ -235,8 +235,6 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
         }  
     }
 }
-
-
 
 /* Passes in the command to check. Returns the index of the built-in command if it’s in the array of
  * built-in commands and -1 if it is not in the array allBuiltIns
