@@ -180,7 +180,7 @@ void trim_background_process_list(pid_t pid_to_remove) {
     background_job *prev_background_job = NULL;
 
     while (cur_background_job != NULL) {
-        if (cur_background_job->pgid == pid_to_remove) {
+        if (cur_background_job->pgid == pid_to_remove) { //todo: check this code, since I don't think it works correctly...
             if (prev_background_job == NULL) {
                 all_background_jobs = NULL;
                 return;
@@ -214,8 +214,22 @@ void job_suspend_helper(pid_t calling_id, int cont, int status) {
 void childReturning(int sig, siginfo_t *siginfo, void *context) {
     int signum = siginfo->si_signo;
     pid_t calling_id = siginfo->si_pid;
+    printf("handler hit, pid:%d, signal%d\n", calling_id, signum);
+
     if (signum == SIGCHLD) {
-        if (siginfo->si_status != 0) {
+        //TODO: finish covering all SIGCHLD codes and ensure this is working correctly...
+        //in the case of the child being killed, remove it from the list of jobs
+        if(siginfo->si_code == CLD_KILLED || siginfo->si_code == CLD_DUMPED) {
+            trim_background_process_list(calling_id); //it has been killed and should be removed from the list of processes for job
+        }
+        //else if (siginfo->si_status != 0) {
+        else if(siginfo->si_status == CLD_STOPPED) {
+            job_suspend_helper(calling_id, 0, SUSPENDED);
+        }
+        else if(siginfo->si_code == CLD_CONTINUED) {
+            printf("child continued");
+        }
+        else if (siginfo->si_status != 0) {
             job_suspend_helper(calling_id, 0, SUSPENDED);
         }
         else {
@@ -223,8 +237,6 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
         }  
     }
 }
-
-
 
 /* Passes in the command to check. Returns the index of the built-in command if it’s in the array of
  * built-in commands and -1 if it is not in the array allBuiltIns
@@ -319,6 +331,8 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
 
     setpgid(pid, pgid);
 
+    printf("pid: %d\n", pid);
+
     if (foreground) {
         if (tcsetpgrp(shell_terminal, pgid) < 0) {
             perror("tcsetpgrp");
@@ -326,7 +340,7 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
         }
     }
 
-    /* Set the handling for job control signals back to the default.  */ //TODO: set handling properly to what we want!!
+    /* Set the handling for job control signals back to the default.  */
     signal(SIGINT, SIG_DFL);
     signal(SIGQUIT, SIG_DFL);
     signal(SIGTSTP, SIG_DFL);
@@ -428,8 +442,107 @@ int exit_builtin(char **args) {
     return EXIT; //success
 }
 
+///* Method to take a job id and send a SIGTERM to terminate the process.*/
+//int kill_builtin(char **args) {
+//    char *flag = "-9\0";
+//    int flagLocation = 1;
+//    int pidLocationNoFlag = 1;
+//    int pidLocation = 2;
+//    int minElements = 2;
+//    int maxElements = 3;
+//
+//    //get args length
+//    int argsLength = arrayLength(args);
+//
+//    if (argsLength < minElements || argsLength > maxElements) {
+//        //invalid arguments
+//        return FALSE;
+//    } else if (argsLength == maxElements) {
+//        if (!strcmp(args[flagLocation],
+//                    flag)) { //check that -9 flag was input correctly, otherwise try sending kill with pid
+//            //(error checking gotten from stack overflow)
+//            const char *nptr = args[pidLocation];                     /* string to read as a PID      */
+//            char *endptr = NULL;                            /* pointer to additional chars  */
+//            int base = 10;                                  /* numeric base (default 10)    */
+//            long long int number = 0;                       /* variable holding return      */
+//
+//            /* reset errno to 0 before call */
+//            errno = 0;
+//
+//            /* call to strtol assigning return to number */
+//            number = strtoll(nptr, &endptr, base);
+//
+//            /* test return to number and errno values */
+//            if (nptr == endptr) {
+//                printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
+//                return FALSE;
+//            } else if (errno == ERANGE && number == LONG_MIN) {
+//                printf(" number : %lld  invalid  (underflow occurred)\n", number);
+//                return FALSE;
+//            } else if (errno == ERANGE && number == LONG_MAX) {
+//                printf(" number : %lld  invalid  (overflow occurred)\n", number);
+//                return FALSE;
+//            } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
+//                printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
+//                return FALSE;
+//            } else if (errno != 0 && number == 0) {
+//                printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
+//                return FALSE;
+//            } else if (errno == 0 && nptr && *endptr != 0) {
+//                printf(" number : %lld    invalid  (since additional characters remain)\n", number);
+//                return FALSE;
+//            }
+//
+//            pid_t pid = number;
+//            kill(pid, SIGKILL);
+//            return TRUE;
+//        }
+//    } else { //we have no flags and only kill with a pid
+//        //PID is second argument
+//        //(error checking gotten from stack overflow)
+//        const char *nptr = args[pidLocationNoFlag];                     /* string to read as a PID      */
+//        char *endptr = NULL;                            /* pointer to additional chars  */
+//        int base = 10;                                  /* numeric base (default 10)    */
+//        long long int number = 0;                       /* variable holding return      */
+//
+//        /* reset errno to 0 before call */
+//        errno = 0;
+//
+//        /* call to strtol assigning return to number */
+//        number = strtoll(nptr, &endptr, base);
+//
+//        /* test return to number and errno values */
+//        if (nptr == endptr) {
+//            printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
+//            return FALSE;
+//        } else if (errno == ERANGE && number == LONG_MIN) {
+//            printf(" number : %lld  invalid  (underflow occurred)\n", number);
+//            return FALSE;
+//        } else if (errno == ERANGE && number == LONG_MAX) {
+//            printf(" number : %lld  invalid  (overflow occurred)\n", number);
+//            return FALSE;
+//        } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
+//            printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
+//            return FALSE;
+//        } else if (errno != 0 && number == 0) {
+//            printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
+//            return FALSE;
+//        } else if (errno == 0 && nptr && *endptr != 0) {
+//            printf(" number : %lld    invalid  (since additional characters remain)\n", number);
+//            return FALSE;
+//        }
+//
+//        pid_t pid = number;
+//        kill(pid, SIGTERM);
+//        return TRUE;
+//    }
+//    return FALSE;
+//}
+
+/* Get kill working... */
 /* Method to take a job id and send a SIGTERM to terminate the process.*/
 int kill_builtin(char **args) {
+    printf("hit kill\n");
     char *flag = "-9\0";
     int flagLocation = 1;
     int pidLocationNoFlag = 1;
@@ -442,6 +555,7 @@ int kill_builtin(char **args) {
 
     if (argsLength < minElements || argsLength > maxElements) {
         //invalid arguments
+        printError("I am sorry, but you have passed an invalid number of arguments to kill.\n");
         return FALSE;
     } else if (argsLength == maxElements) {
         if (!strcmp(args[flagLocation],
@@ -480,8 +594,16 @@ int kill_builtin(char **args) {
             }
 
             pid_t pid = number;
-            kill(pid, SIGKILL);
-            return TRUE;
+            printf("%d pid\n", pid);
+            if (kill(pid, SIGKILL) == -1) {
+                printError("I am sorry, an error occurred with kill.\n");
+                return FALSE; //error occurred
+            } else {
+                return TRUE;
+            }
+        } else {
+            printError("I am sorry, an error occurred with kill.\n");
+            return FALSE; //error occurred
         }
     } else { //we have no flags and only kill with a pid
         //PID is second argument
@@ -519,8 +641,13 @@ int kill_builtin(char **args) {
         }
 
         pid_t pid = number;
-        kill(pid, SIGTERM);
-        return TRUE;
+        printf("%d pid\n", pid);
+        if (kill(pid, SIGKILL) == -1) {
+            printError("I am sorry, an error occurred with kill.\n");
+            return FALSE; //error occurred
+        } else {
+            return TRUE;
+        }
     }
     return FALSE;
 }
