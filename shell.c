@@ -236,12 +236,6 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
         else if(siginfo->si_code == CLD_CONTINUED) {
             printf("child continued");
         }
-        else if (siginfo->si_status != 0) {
-            job_suspend_helper(calling_id, 0, SUSPENDED);
-        }
-        else {
-            trim_background_process_list(calling_id);
-        }
     }
 }
 
