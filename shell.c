@@ -58,10 +58,9 @@ int main (int argc, char **argv) {
         // printf("%d \n", all_background_jobs->termios_modes.c_iflag);
     }
 
-    // free_background_jobs();
-    // printoutargs();
-
-    // return 0;
+    //free malloced memory
+    free_background_jobs();
+    return EXIT_SUCCESS;
 }
 
 void printoutargs() {
@@ -439,110 +438,12 @@ int arrayLength(char **array) {
     return i;
 }
 
-
 /* Let's have this clean up the job list */
 int exit_builtin(char **args) {
     free_background_jobs();
     EXIT = TRUE;
     return EXIT; //success
 }
-
-///* Method to take a job id and send a SIGTERM to terminate the process.*/
-//int kill_builtin(char **args) {
-//    char *flag = "-9\0";
-//    int flagLocation = 1;
-//    int pidLocationNoFlag = 1;
-//    int pidLocation = 2;
-//    int minElements = 2;
-//    int maxElements = 3;
-//
-//    //get args length
-//    int argsLength = arrayLength(args);
-//
-//    if (argsLength < minElements || argsLength > maxElements) {
-//        //invalid arguments
-//        return FALSE;
-//    } else if (argsLength == maxElements) {
-//        if (!strcmp(args[flagLocation],
-//                    flag)) { //check that -9 flag was input correctly, otherwise try sending kill with pid
-//            //(error checking gotten from stack overflow)
-//            const char *nptr = args[pidLocation];                     /* string to read as a PID      */
-//            char *endptr = NULL;                            /* pointer to additional chars  */
-//            int base = 10;                                  /* numeric base (default 10)    */
-//            long long int number = 0;                       /* variable holding return      */
-//
-//            /* reset errno to 0 before call */
-//            errno = 0;
-//
-//            /* call to strtol assigning return to number */
-//            number = strtoll(nptr, &endptr, base);
-//
-//            /* test return to number and errno values */
-//            if (nptr == endptr) {
-//                printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
-//                return FALSE;
-//            } else if (errno == ERANGE && number == LONG_MIN) {
-//                printf(" number : %lld  invalid  (underflow occurred)\n", number);
-//                return FALSE;
-//            } else if (errno == ERANGE && number == LONG_MAX) {
-//                printf(" number : %lld  invalid  (overflow occurred)\n", number);
-//                return FALSE;
-//            } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
-//                printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
-//                return FALSE;
-//            } else if (errno != 0 && number == 0) {
-//                printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
-//                return FALSE;
-//            } else if (errno == 0 && nptr && *endptr != 0) {
-//                printf(" number : %lld    invalid  (since additional characters remain)\n", number);
-//                return FALSE;
-//            }
-//
-//            pid_t pid = number;
-//            kill(pid, SIGKILL);
-//            return TRUE;
-//        }
-//    } else { //we have no flags and only kill with a pid
-//        //PID is second argument
-//        //(error checking gotten from stack overflow)
-//        const char *nptr = args[pidLocationNoFlag];                     /* string to read as a PID      */
-//        char *endptr = NULL;                            /* pointer to additional chars  */
-//        int base = 10;                                  /* numeric base (default 10)    */
-//        long long int number = 0;                       /* variable holding return      */
-//
-//        /* reset errno to 0 before call */
-//        errno = 0;
-//
-//        /* call to strtol assigning return to number */
-//        number = strtoll(nptr, &endptr, base);
-//
-//        /* test return to number and errno values */
-//        if (nptr == endptr) {
-//            printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
-//            return FALSE;
-//        } else if (errno == ERANGE && number == LONG_MIN) {
-//            printf(" number : %lld  invalid  (underflow occurred)\n", number);
-//            return FALSE;
-//        } else if (errno == ERANGE && number == LONG_MAX) {
-//            printf(" number : %lld  invalid  (overflow occurred)\n", number);
-//            return FALSE;
-//        } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
-//            printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
-//            return FALSE;
-//        } else if (errno != 0 && number == 0) {
-//            printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
-//            return FALSE;
-//        } else if (errno == 0 && nptr && *endptr != 0) {
-//            printf(" number : %lld    invalid  (since additional characters remain)\n", number);
-//            return FALSE;
-//        }
-//
-//        pid_t pid = number;
-//        kill(pid, SIGTERM);
-//        return TRUE;
-//    }
-//    return FALSE;
-//}
 
 /* Get kill working... */
 /* Method to take a job id and send a SIGTERM to terminate the process.*/
@@ -854,7 +755,7 @@ void foreground_helper(background_job *bj) {
 
 /* Method that uses tcsetpgrp() to foreground the process -- this is fg*/
 int foreground_builtin(char** args) {
-    
+
     /*
      * Basic functionality included (ie foreground last pid)
      * to test to make sure this is working
@@ -866,7 +767,7 @@ int foreground_builtin(char** args) {
     background_job *bj = get_background_from_pgid(pgid);
 
     sigset_t mask;
-    sigemptyset (&mask);
+    sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
@@ -880,4 +781,3 @@ int foreground_builtin(char** args) {
 
     return TRUE;
 }
-

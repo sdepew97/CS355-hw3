@@ -15,7 +15,8 @@ Known Bugs:
 ==25223==    by 0x109192: main (in /home/sdepew/CS355/hw3/shell)
 
 7) try to background job and get infinite loop..
-8)
+8) [sdepew@canopus hw3]$ who& ; ls&
+   -bash: syntax error near unexpected token `;'
 
 
 To Be Done:
