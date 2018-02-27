@@ -496,8 +496,8 @@ int kill_builtin(char **args) {
         printError("I am sorry, but you have passed an invalid number of arguments to kill.\n");
         return FALSE;
     } else if (argsLength == maxElements && args[pidLocation][0]=='%') {
-        if (!strcmp(args[flagLocation],
-                    flag)) { //check that -9 flag was input correctly, otherwise try sending kill with pid
+        if (strcmp(args[flagLocation],
+                    flag)==0) { //check that -9 flag was input correctly, otherwise try sending kill with pid
             //(error checking gotten from stack overflow)
             const char *nptr = args[pidLocation]+pidLocationNoFlag;  /* string to read as a number      */
             char *endptr = NULL;                            /* pointer to additional chars  */
@@ -638,7 +638,7 @@ int kill_builtin(char **args) {
             } else {
                 pid_t pid = currentJob->pgid;
                 printf("%d pid\n", pid);
-                if (kill(pid, SIGKILL) == -1) {
+                if (kill(pid, SIGTERM) == -1) {
                     printError("I am sorry, an error occurred with kill.\n");
                     return FALSE; //error occurred
                 } else {
@@ -718,7 +718,6 @@ int background_builtin(char **args) {
             currentJob = currentJob->next_background_job;
         }
         printf("here ?\n");
-
 
         sigset_t mask;
         sigemptyset (&mask);
@@ -850,7 +849,6 @@ void foreground_helper(background_job *bj) {
 
 /* Method that uses tcsetpgrp() to foreground the process -- this is fg*/
 int foreground_builtin(char** args) {
-
     /*
      * Basic functionality included (ie foreground last pid)
      * to test to make sure this is working
@@ -865,11 +863,10 @@ int foreground_builtin(char** args) {
 
     if (argsLength < minElements || argsLength > maxElements) {
         //invalid arguments
-        printError("I am sorry, but you have passed an invalid number of arguments to kill.\n");
+        printError("I am sorry, but you have passed an invalid number of arguments to fg.\n");
         return FALSE;
-    } else if (argsLength == maxElements && args[percentLocation][0] == '%') {
-
-        //PID is second argument
+    } else if (argsLength == maxElements) {
+      if (args[percentLocation][0] == '%') {
         //(error checking gotten from stack overflow)
         const char *nptr =
                 args[percentLocation] + percentLocation;  /* string to read as a number      */
@@ -912,18 +909,21 @@ int foreground_builtin(char** args) {
 
         while (currentJob != NULL) {
             currentNode++;
-            //found your node
+            //found your node requested
             if (currentNode == number) {
-                /* sig proc mask this */
+                // put job into the foreground here
+                pid_t pid = currentJob->pgid;
                 sigset_t mask;
                 sigemptyset(&mask);
                 sigaddset(&mask, SIGCHLD);
                 sigprocmask(SIG_BLOCK, &mask, NULL);
 
-                background_built_in_helper(currentJob, TRUE, RUNNING);
+                trim_background_process_list(pid);
 
                 sigprocmask(SIG_UNBLOCK, &mask, NULL);
-                break;
+
+                foreground_helper(currentJob);
+                return TRUE;
             } else {
                 currentJob = currentJob->next_background_job;
             }
@@ -933,34 +933,43 @@ int foreground_builtin(char** args) {
         if (currentNode < number) {
             printError("I am sorry, but that job does not exist.\n");
             return FALSE;
-        } else {
-            pid_t pid = currentJob->pgid;
-            printf("%d pid\n", pid);
-            if (kill(pid, SIGKILL) == -1) {
-                printError("I am sorry, an error occurred with kill.\n");
-                return FALSE; //error occurred
-            } else {
-                return TRUE;
-            }
         }
+      } else {
+        printError("I am sorry, but you have passed an invalid node argument to fg.\n");
+        return FALSE;
+      }
     } else {
 
-        /* get last process pid_t */
-        pid_t pgid = all_background_jobs->pgid;
+      //bring back tail of jobs list, if it exists
+      background_job *currentJob = all_background_jobs;
+      background_job *nextJob = NULL;
+      if (currentJob == NULL) {
+          printError("I am sorry, but that job does not exist.\n");
+          return FALSE;
+      }
 
-        background_job *bj = get_background_from_pgid(pgid);
-        printf("%s\n", bj->job_string);
+      //go to the end of the list
+      while (currentJob != NULL) {
+          nextJob = currentJob->next_background_job;
+          if (nextJob == NULL) {
+              break; //want to bring back current job
+          }
+          currentJob = currentJob->next_background_job;
+      }
+
+        /* get last process pid_t */
+        pid_t pid = currentJob->pgid;
 
         sigset_t mask;
         sigemptyset(&mask);
         sigaddset(&mask, SIGCHLD);
         sigprocmask(SIG_BLOCK, &mask, NULL);
 
-        trim_background_process_list(pgid);
+        trim_background_process_list(pid);
 
         sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
-        foreground_helper(bj);
+        foreground_helper(currentJob);
 
         return TRUE;
     }
