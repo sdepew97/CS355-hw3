@@ -173,15 +173,16 @@ int isBackgroundJob(job* job1) {
 }
 
 /* takes pgid to remove and removes corresponding pgid */ 
+/* note this is updated */
 void trim_background_process_list(pid_t pid_to_remove) {
 
     background_job *cur_background_job = all_background_jobs;
     background_job *prev_background_job = NULL;
-
     while (cur_background_job != NULL) {
         if (cur_background_job->pgid == pid_to_remove) { //todo: check this code, since I don't think it works correctly...
             if (prev_background_job == NULL) {
-                all_background_jobs = NULL;
+                background_job *temp = cur_background_job->next_background_job;
+                all_background_jobs = temp;
                 return;
             }
             else {
@@ -218,7 +219,10 @@ void job_suspend_helper(pid_t calling_id, int cont, int status) {
 void childReturning(int sig, siginfo_t *siginfo, void *context) {
     int signum = siginfo->si_signo;
     pid_t calling_id = siginfo->si_pid;
-    printf("handler hit, pid:%d, signal%d\n", calling_id, signum);
+    // printf(">> %d\n", siginfo->si_code);
+    // printf("cld stopped %d \n", siginfo->si_code);
+    // printf("sig num %d \n", signum);
+    // printf("sig num if SIGCHLD %d \n ", SIGCHLD);
 
     if (signum == SIGCHLD) {
         //TODO: finish covering all SIGCHLD codes and ensure this is working correctly...
@@ -227,18 +231,9 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
             trim_background_process_list(calling_id); //it has been killed and should be removed from the list of processes for job
         }
         //else if (siginfo->si_status != 0) {
-        else if(siginfo->si_status == CLD_STOPPED) {
+        else if(siginfo->si_code == CLD_STOPPED) {
             job_suspend_helper(calling_id, 0, SUSPENDED);
         }
-        else if(siginfo->si_code == CLD_CONTINUED) {
-            printf("child continued");
-        }
-        else if (siginfo->si_status != 0) {
-            job_suspend_helper(calling_id, 0, SUSPENDED);
-        }
-        else {
-            trim_background_process_list(calling_id);
-        }  
     }
 }
 
@@ -719,31 +714,17 @@ background_job *get_background_from_pgid(pid_t pgid) {
 }
 
 void foreground_helper(background_job *bj) {
-    int status, err;
+    int status;
     /* Put the job into the foreground.  */
     tcsetpgrp(shell_terminal, bj->pgid);
 
     /* Send the job a continue signal, if necessary.  */
-    tcsetattr(shell_terminal, TCSADRAIN, &bj->termios_modes);
+    tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
     if (kill(-bj->pgid, SIGCONT) < 0)
         perror("kill (SIGCONT)");
 
-    /* Wait for it to report.  */
-    //wait_for_job(j); //TODO: wait for job here (add further code!!)?
-    /* taking advice from https://cboard.cprogramming.com/c-programming/113860-recvfrom-getting-interrupted-system-call.html on interrupt system call */
-    /*
-     * Getting weird error here from valgrind
-     * 
-     * Syscall param ioctl(TCSET{S,SW,SF}) points to uninitialised byte(s)
-     * 
-     * Perhaps we're not allocating this struct correctly when we assign it to a background job
-     * 
-     */
-    while ((err = waitpid(bj->pgid , &status, WUNTRACED)) && errno == EINTR) 
-        ; 
-    if (err < 0) {
-        perror("Waitpid");
-    }
+    /* if the system call is interupted, wait agian */
+    waitpid(bj->pgid , &status, WUNTRACED);
 
     /* Put the shell back in the foreground.  */
     tcsetpgrp(shell_terminal, shell_pgid);
@@ -765,6 +746,7 @@ int foreground_builtin(char** args) {
     pid_t pgid = all_background_jobs->pgid;
 
     background_job *bj = get_background_from_pgid(pgid);
+    printf("%s\n", bj->job_string);
 
     sigset_t mask;
     sigemptyset(&mask);
@@ -774,10 +756,8 @@ int foreground_builtin(char** args) {
     trim_background_process_list(pgid);
 
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
-
-
+  
     foreground_helper(bj);
-
 
     return TRUE;
 }
