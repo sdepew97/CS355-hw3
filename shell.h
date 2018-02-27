@@ -46,6 +46,7 @@ typedef struct job {
     struct process *first_process;
     pid_t pgid;
     char *job_string;
+    char *full_job_string;
     int status;
     struct termios termios_modes;
     int stdin;
@@ -64,6 +65,8 @@ typedef struct background_job {
 } background_job;
 
 void printoutargs();
+
+int lengthOf(char *str);
 
 int arrayLength(char **array);
 
