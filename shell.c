@@ -911,7 +911,6 @@ int foreground_builtin(char** args) {
         }
     }
     else {
-
         /* get last process pid_t */
         pid_t pgid = all_background_jobs->pgid;
 
@@ -925,7 +924,6 @@ int foreground_builtin(char** args) {
         trim_background_process_list(pgid);
 
         sigprocmask(SIG_UNBLOCK, &mask, NULL);
-
 
         foreground_helper(bj);
     }
