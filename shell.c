@@ -547,6 +547,8 @@ int kill_builtin(char **args) {
         /* reset errno to 0 before call */
         errno = 0;
 
+        printf("job number%s\n", nptr);
+
         /* call to strtol assigning return to number */
         number = strtoll(nptr, &endptr, base);
 
