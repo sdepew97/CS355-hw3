@@ -211,6 +211,11 @@ void job_suspend_helper(pid_t calling_id, int cont, int status) {
 
 /* child process has terminated and so we need to remove the process from the linked list (by pid).
  * We would call this function in the signal handler when getting a SIGCHLD signal. */
+/*
+ * Problem occuring where job strings of failed execvp's get added to jobs list
+ * ie "asdf" as prompt will be printed as suspended in jobs 
+ *
+ */
 void childReturning(int sig, siginfo_t *siginfo, void *context) {
     int signum = siginfo->si_signo;
     pid_t calling_id = siginfo->si_pid;
