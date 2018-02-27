@@ -54,8 +54,8 @@ int main (int argc, char **argv) {
         }
 
         free_all_jobs();
-        // break;
-        // printf("%d \n", all_background_jobs->termios_modes.c_iflag);
+        //break;
+
     }
 
     //free malloced memory
@@ -95,16 +95,15 @@ void initializeShell() {
         /* Ignore interactive and job-control signals.  */
         signal(SIGINT, SIG_IGN);
         signal(SIGQUIT, SIG_IGN);
-        signal(SIGTSTP, SIG_IGN);
         signal(SIGTTIN, SIG_IGN);
         signal(SIGTTOU, SIG_IGN);
+        signal(SIGTSTP, SIG_IGN);
 
         //register a signal handler for SIGCHILD
         /* Handle Signal */
         struct sigaction childreturn;
         memset(&childreturn, 0, sizeof(childreturn));
         childreturn.sa_sigaction = &childReturning;
-
         sigset_t mask;
         sigemptyset (&mask);
         sigaddset(&mask, SIGCHLD);
@@ -212,7 +211,7 @@ void job_suspend_helper(pid_t calling_id, int cont, int status) {
 /* child process has terminated and so we need to remove the process from the linked list (by pid).
  * We would call this function in the signal handler when getting a SIGCHLD signal. */
 /*
- * Problem occuring where job strings of failed execvp's get added to jobs list
+ * Problem occurring where job strings of failed execvp's get added to jobs list
  * ie "asdf" as prompt will be printed as suspended in jobs
  *
  */
@@ -237,6 +236,39 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
     }
 }
 
+/* This method is simply the remove node method called when a node needs to be removed from the list of jobs. */
+void removeNode(pid_t pidToRemove) {
+    //look through jobs for pid of child to remove
+    job *currentJob = all_jobs;
+
+    process *currentProcess = NULL;
+    process *nextProcess = NULL;
+
+    while (currentJob != NULL) {
+        //the pid of the first job process matches, then update job pointer!
+        currentProcess = currentJob->first_process;
+        if (currentProcess != NULL && currentProcess->pid == pidToRemove) {
+            currentJob->first_process = currentProcess->next_process;
+            return;
+        } else { //look at all processes w/in job for pid not the first one
+            while (currentProcess != NULL) {
+                nextProcess = currentProcess->next_process;
+                if (nextProcess->pid == pidToRemove) {
+                    //found the pidToRemove, free, and an reset pointers
+                    currentProcess->next_process = nextProcess->next_process;
+                    free(nextProcess);
+                    return;
+                }
+                currentProcess = nextProcess;
+            }
+        }
+
+        //pid not found in list of current processes for prior viewed job, get next job
+        currentJob = currentJob->next_job;
+    }
+}
+
+
 /* Passes in the command to check. Returns the index of the built-in command if it’s in the array of
  * built-in commands and -1 if it is not in the array allBuiltIns
  */
@@ -250,7 +282,7 @@ int isBuiltInCommand(process cmd) {
 }
 
 int process_equals(process process1, builtin builtin1) {
-    /* problem ocurring with white space args -- temporary fix, need to make sure parser doesn't give back whitespace commands */
+    /* problem occurring with white space args -- temporary fix, need to make sure parser doesn't give back whitespace commands */
     if (process1.args[0] == NULL) { return FALSE; }
     int compare_value = strcmp(process1.args[0], builtin1.tag);
     if (compare_value == FALSE) {
@@ -262,10 +294,8 @@ int process_equals(process process1, builtin builtin1) {
 
 /* Passes in the built-in command to be executed along with the index of the command in the allBuiltIns array. This method returns true upon success and false upon failure/error. */
 int executeBuiltInCommand(process *process1, int index) {
-
-    int success =(*(allBuiltIns[index].function))(process1->args);
-
-    return TRUE;
+    //execute built in (testing...)
+    return (*(allBuiltIns[index].function))(process1->args);
 }
 
 void launchJob(job *j, int foreground) {
@@ -276,18 +306,24 @@ void launchJob(job *j, int foreground) {
 
         //run as a built-in command
         if (isBuiltIn != NOT_FOUND) {
+            //printf("built in");
             executeBuiltInCommand(p, isBuiltIn);
             foreground = TRUE;
         }
+            //run through execvp
         else {
+            /* Fork the child processes.  */
             pid = fork();
 
             if (pid == 0) {
+                /* This is the child process.  */
                 launchProcess(p, j->pgid, j->stdin, j->stdout, j->stderr, foreground);
             } else if (pid < 0) {
+                /* The fork failed.  */
                 perror("fork");
                 exit(EXIT_FAILURE);
             } else {
+                /* This is the parent process.  */
                 p->pid = pid;
 
                 if (!j->pgid) {
@@ -301,7 +337,7 @@ void launchJob(job *j, int foreground) {
 
     if (foreground) {
         put_job_in_foreground(j, 0);
-    } else {
+    } else { //TODO: check on this section of merge
         sigset_t mask;
         sigemptyset (&mask);
         sigaddset(&mask, SIGCHLD);
@@ -396,7 +432,7 @@ void simple_background_job_setup(background_job *dest, job *org, int status)
 
 /* Put a job in the background.  If the cont argument is true, send
    the process group a SIGCONT signal to wake it up.  */
-void put_job_in_background(job *j, int cont, int status) {
+void put_job_in_background(job *j, int cont, int status) { //TODO: check on merge here
 
     /* Add job to the background list with status of running */
     background_job *copyOfJ = malloc(sizeof(background_job));
@@ -422,7 +458,6 @@ void put_job_in_background(job *j, int cont, int status) {
             perror("kill (SIGCONT)");
         }
     }
-
 }
 
 int arrayLength(char **array) {
@@ -430,6 +465,7 @@ int arrayLength(char **array) {
     while (array[i] != NULL) {
         i++;
     }
+
     return i;
 }
 
@@ -440,10 +476,8 @@ int exit_builtin(char **args) {
     return EXIT; //success
 }
 
-/* Get kill working... */
 /* Method to take a job id and send a SIGTERM to terminate the process.*/
 int kill_builtin(char **args) {
-    printf("hit kill\n");
     char *flag = "-9\0";
     int flagLocation = 1;
     int pidLocationNoFlag = 1;
@@ -543,7 +577,7 @@ int kill_builtin(char **args) {
 
         pid_t pid = number;
         printf("%d pid\n", pid);
-        if (kill(pid, SIGKILL) == -1) {
+        if (kill(pid, SIGTERM) == -1) {
             printError("I am sorry, an error occurred with kill.\n");
             return FALSE; //error occurred
         } else {
@@ -560,9 +594,8 @@ int jobs_builtin(char **args) {
     int jobID = 1;
 
     if (currentJob == NULL) {
-
-    }
-    else {
+        printError("I am sorry, there are no jobs in the list right now.\n");
+    } else {
         while (currentJob != NULL) {
             //print out formatted information for processes in job
             printf("[%d]\t %d %s \t\t %s\n", jobID, currentJob->pgid, status[currentJob->status], currentJob->job_string);
@@ -598,7 +631,6 @@ int background_builtin(char **args) {
     int locationOfPercent = 1;
     int minArgsLength = 1;
     int maxArgsLength = 2;
-    printf("ya?\n ");
 
     if (argsLength < minArgsLength || argsLength > maxArgsLength) {
         printError("I am sorry, but that is an invalid list of commands to bg.\n");

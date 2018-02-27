@@ -17,6 +17,7 @@ Known Bugs:
 7) try to background job and get infinite loop..
 8) [sdepew@canopus hw3]$ who& ; ls&
    -bash: syntax error near unexpected token `;'
+8) emacs, ls, then jobs and get infinite loop
 
 
 To Be Done:
