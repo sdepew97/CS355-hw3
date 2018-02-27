@@ -878,7 +878,7 @@ int foreground_builtin(char** args) {
         //PID is second argument
         //(error checking gotten from stack overflow)
         const char *nptr =
-                args[pidLocationNoFlag] + pidLocationNoFlag;  /* string to read as a number      */
+                args[percentLocation] + percentLocation;  /* string to read as a number      */
         char *endptr = NULL;                            /* pointer to additional chars  */
         int base = 10;                                  /* numeric base (default 10)    */
         long long int number = 0;                       /* variable holding return      */
