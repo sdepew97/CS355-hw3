@@ -179,7 +179,7 @@ void trim_background_process_list(pid_t pid_to_remove) {
     background_job *prev_background_job = NULL;
 
     while (cur_background_job != NULL) {
-        if (cur_background_job->pgid == pid_to_remove) { //todo: check this code, since I don't think it works correctly...
+        if (cur_background_job->pgid == pid_to_remove) {
             if (prev_background_job == NULL) {
                 all_background_jobs = NULL;
                 return;
@@ -293,7 +293,7 @@ void launchJob(job *j, int foreground) {
                     j->pgid = pid;
                 }
 
-                setpgid(pid, j->pgid); //TODO: check process group ids being altered correctly
+                setpgid(pid, j->pgid);
             }
         }
     }
@@ -370,7 +370,6 @@ void put_job_in_foreground (job *j, int cont) {
     }
 
     /* Wait for it to report.  */
-    //wait_for_job(j); //TODO: wait for job here (add further code!!)?
     waitpid (j->pgid, &status, WUNTRACED);
 
     /* Put the shell back in the foreground.  */
@@ -502,17 +501,43 @@ int kill_builtin(char **args) {
                 return FALSE;
             }
 
-            pid_t pid = number;
-            printf("%d pid\n", pid);
-            if (kill(pid, SIGKILL) == -1) {
-                printError("I am sorry, an error occurred with kill.\n");
-                return FALSE; //error occurred
-            } else {
-                return TRUE;
+            //have location now in linked list
+            int currentNode = 0;
+            background_job *currentJob = all_background_jobs;
+
+            while (currentJob != NULL) {
+                currentNode++;
+                //found your node
+                if (currentNode == number) {
+                    /* sig proc mask this */
+                    sigset_t mask;
+                    sigemptyset(&mask);
+                    sigaddset(&mask, SIGCHLD);
+                    sigprocmask(SIG_BLOCK, &mask, NULL);
+
+                    background_built_in_helper(currentJob, TRUE, RUNNING);
+
+                    sigprocmask(SIG_UNBLOCK, &mask, NULL);
+                    break;
+                } else {
+                    currentJob = currentJob->next_background_job;
+                }
             }
-        } else {
-            printError("I am sorry, an error occurred with kill.\n");
-            return FALSE; //error occurred
+
+            //node was not found!
+            if (currentNode < number) {
+                printError("I am sorry, but that job does not exist.\n");
+                return FALSE;
+            } else {
+                pid_t pid = currentJob->pgid;
+                printf("%d pid\n", pid);
+                if (kill(pid, SIGKILL) == -1) {
+                    printError("I am sorry, an error occurred with kill.\n");
+                    return FALSE; //error occurred
+                } else {
+                    return TRUE;
+                }
+            }
         }
     } else { //we have no flags and only kill with a pid
         //PID is second argument
@@ -549,13 +574,42 @@ int kill_builtin(char **args) {
             return FALSE;
         }
 
-        pid_t pid = number;
-        printf("%d pid\n", pid);
-        if (kill(pid, SIGKILL) == -1) {
-            printError("I am sorry, an error occurred with kill.\n");
-            return FALSE; //error occurred
+        //have location now in linked list
+        int currentNode = 0;
+        background_job *currentJob = all_background_jobs;
+
+        while (currentJob != NULL) {
+            currentNode++;
+            //found your node
+            if (currentNode == number) {
+                /* sig proc mask this */
+                sigset_t mask;
+                sigemptyset(&mask);
+                sigaddset(&mask, SIGCHLD);
+                sigprocmask(SIG_BLOCK, &mask, NULL);
+
+                background_built_in_helper(currentJob, TRUE, RUNNING);
+
+                sigprocmask(SIG_UNBLOCK, &mask, NULL);
+                break;
+            } else {
+                currentJob = currentJob->next_background_job;
+            }
+        }
+
+        //node was not found!
+        if (currentNode < number) {
+            printError("I am sorry, but that job does not exist.\n");
+            return FALSE;
         } else {
-            return TRUE;
+            pid_t pid = currentJob->pgid;
+            printf("%d pid\n", pid);
+            if (kill(pid, SIGKILL) == -1) {
+                printError("I am sorry, an error occurred with kill.\n");
+                return FALSE; //error occurred
+            } else {
+                return TRUE;
+            }
         }
     }
     return FALSE;
