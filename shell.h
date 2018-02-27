@@ -111,6 +111,7 @@ void launchJob (job *j, int foreground);
 void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile, int foreground);
 void put_job_in_foreground (job *j, int cont);
 void put_job_in_background (job *j, int cont, int status);
+void background_built_in_helper(background_job *bj, int cont, int status);
 
 /* Method to make sure the shell is running interactively as the foreground job before proceeding. Modeled after method found on https://www.gnu.org/software/libc/manual/html_mono/libc.html#Foreground-and-Background. */
 void initializeShell();
