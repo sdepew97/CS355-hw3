@@ -109,7 +109,7 @@ void initializeShell() {
         sigaddset(&mask, SIGCHLD);
         childreturn.sa_mask = mask;
         /* add sig set for sig child and sigtstp */
-        childreturn.sa_flags = SA_SIGINFO;
+        childreturn.sa_flags = SA_SIGINFO | SA_RESTART;
         if (sigaction(SIGCHLD, &childreturn, NULL) < 0) {
             printError("Error with sigaction for child.\n");
             return;
@@ -227,19 +227,24 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
         //TODO: finish covering all SIGCHLD codes and ensure this is working correctly...
         //in the case of the child being killed, remove it from the list of jobs
         if(siginfo->si_code == CLD_KILLED || siginfo->si_code == CLD_DUMPED) {
+            printf("2\n");
             trim_background_process_list(calling_id); //it has been killed and should be removed from the list of processes for job
         }
         //else if (siginfo->si_status != 0) {
         else if(siginfo->si_status == CLD_STOPPED) {
+            printf("1\n");
             job_suspend_helper(calling_id, 0, SUSPENDED);
         }
         else if(siginfo->si_code == CLD_CONTINUED) {
+            
             printf("child continued");
         }
         else if (siginfo->si_status != 0) {
+            printf("3\n");
             job_suspend_helper(calling_id, 0, SUSPENDED);
         }
         else {
+            printf("4\n");
             trim_background_process_list(calling_id);
         }
     }
@@ -423,7 +428,7 @@ void put_job_in_foreground (job *j, int cont) {
     tcsetpgrp(shell_terminal, shell_pgid);
 
     /* Restore the shell’s terminal modes.  */
-    tcgetattr(shell_terminal, &j->termios_modes);
+    tcgetattr(shell_terminal, &shell_tmodes);
     tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
 }
 
@@ -822,7 +827,7 @@ void foreground_helper(background_job *bj) {
     tcsetpgrp(shell_terminal, bj->pgid);
 
     /* Send the job a continue signal, if necessary.  */
-    tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
+    tcsetattr(shell_terminal, TCSADRAIN, &bj->termios_modes);
     if (kill(-bj->pgid, SIGCONT) < 0)
         perror("kill (SIGCONT)");
 
