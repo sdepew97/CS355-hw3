@@ -462,11 +462,11 @@ int kill_builtin(char **args) {
         //invalid arguments
         printError("I am sorry, but you have passed an invalid number of arguments to kill.\n");
         return FALSE;
-    } else if (argsLength == maxElements) {
+    } else if (argsLength == maxElements && args[pidLocation][0]=='%') {
         if (!strcmp(args[flagLocation],
                     flag)) { //check that -9 flag was input correctly, otherwise try sending kill with pid
             //(error checking gotten from stack overflow)
-            const char *nptr = args[pidLocation];                     /* string to read as a PID      */
+            const char *nptr = args[pidLocation]+pidLocationNoFlag;  /* string to read as a number      */
             char *endptr = NULL;                            /* pointer to additional chars  */
             int base = 10;                                  /* numeric base (default 10)    */
             long long int number = 0;                       /* variable holding return      */
@@ -537,79 +537,83 @@ int kill_builtin(char **args) {
             }
         }
     } else { //we have no flags and only kill with a pid
-        //PID is second argument
-        //(error checking gotten from stack overflow)
-        const char *nptr = args[pidLocationNoFlag];                     /* string to read as a PID      */
-        char *endptr = NULL;                            /* pointer to additional chars  */
-        int base = 10;                                  /* numeric base (default 10)    */
-        long long int number = 0;                       /* variable holding return      */
+        if (args[pidLocationNoFlag][0] == '%') {
+            //PID is second argument
+            //(error checking gotten from stack overflow)
+            const char *nptr =
+                    args[pidLocationNoFlag] + pidLocationNoFlag;  /* string to read as a number      */
+            char *endptr = NULL;                            /* pointer to additional chars  */
+            int base = 10;                                  /* numeric base (default 10)    */
+            long long int number = 0;                       /* variable holding return      */
 
-        /* reset errno to 0 before call */
-        errno = 0;
+            /* reset errno to 0 before call */
+            errno = 0;
 
-        printf("job number%s\n", nptr);
+            printf("job number %s\n", nptr);
 
-        /* call to strtol assigning return to number */
-        number = strtoll(nptr, &endptr, base);
+            /* call to strtol assigning return to number */
+            number = strtoll(nptr, &endptr, base);
 
-        /* test return to number and errno values */
-        if (nptr == endptr) {
-            printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
-            return FALSE;
-        } else if (errno == ERANGE && number == LONG_MIN) {
-            printf(" number : %lld  invalid  (underflow occurred)\n", number);
-            return FALSE;
-        } else if (errno == ERANGE && number == LONG_MAX) {
-            printf(" number : %lld  invalid  (overflow occurred)\n", number);
-            return FALSE;
-        } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
-            printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
-            return FALSE;
-        } else if (errno != 0 && number == 0) {
-            printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
-            return FALSE;
-        } else if (errno == 0 && nptr && *endptr != 0) {
-            printf(" number : %lld    invalid  (since additional characters remain)\n", number);
-            return FALSE;
-        }
+            /* test return to number and errno values */
+            if (nptr == endptr) {
+                printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
+                return FALSE;
+            } else if (errno == ERANGE && number == LONG_MIN) {
+                printf(" number : %lld  invalid  (underflow occurred)\n", number);
+                return FALSE;
+            } else if (errno == ERANGE && number == LONG_MAX) {
+                printf(" number : %lld  invalid  (overflow occurred)\n", number);
+                return FALSE;
+            } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
+                printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
+                return FALSE;
+            } else if (errno != 0 && number == 0) {
+                printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
+                return FALSE;
+            } else if (errno == 0 && nptr && *endptr != 0) {
+                printf(" number : %lld    invalid  (since additional characters remain)\n", number);
+                return FALSE;
+            }
 
-        //have location now in linked list
-        int currentNode = 0;
-        background_job *currentJob = all_background_jobs;
+            //have location now in linked list
+            int currentNode = 0;
+            background_job *currentJob = all_background_jobs;
 
-        while (currentJob != NULL) {
-            currentNode++;
-            //found your node
-            if (currentNode == number) {
-                /* sig proc mask this */
-                sigset_t mask;
-                sigemptyset(&mask);
-                sigaddset(&mask, SIGCHLD);
-                sigprocmask(SIG_BLOCK, &mask, NULL);
+            while (currentJob != NULL) {
+                currentNode++;
+                //found your node
+                if (currentNode == number) {
+                    /* sig proc mask this */
+                    sigset_t mask;
+                    sigemptyset(&mask);
+                    sigaddset(&mask, SIGCHLD);
+                    sigprocmask(SIG_BLOCK, &mask, NULL);
 
-                background_built_in_helper(currentJob, TRUE, RUNNING);
+                    background_built_in_helper(currentJob, TRUE, RUNNING);
 
-                sigprocmask(SIG_UNBLOCK, &mask, NULL);
-                break;
+                    sigprocmask(SIG_UNBLOCK, &mask, NULL);
+                    break;
+                } else {
+                    currentJob = currentJob->next_background_job;
+                }
+            }
+
+            //node was not found!
+            if (currentNode < number) {
+                printError("I am sorry, but that job does not exist.\n");
+                return FALSE;
             } else {
-                currentJob = currentJob->next_background_job;
+                pid_t pid = currentJob->pgid;
+                printf("%d pid\n", pid);
+                if (kill(pid, SIGKILL) == -1) {
+                    printError("I am sorry, an error occurred with kill.\n");
+                    return FALSE; //error occurred
+                } else {
+                    return TRUE;
+                }
             }
         }
-
-        //node was not found!
-        if (currentNode < number) {
-            printError("I am sorry, but that job does not exist.\n");
-            return FALSE;
-        } else {
-            pid_t pid = currentJob->pgid;
-            printf("%d pid\n", pid);
-            if (kill(pid, SIGKILL) == -1) {
-                printError("I am sorry, an error occurred with kill.\n");
-                return FALSE; //error occurred
-            } else {
-                return TRUE;
-            }
-        }
+        return FALSE;
     }
     return FALSE;
 }
@@ -696,13 +700,14 @@ int background_builtin(char **args) {
 
         printf("out ? \n");
         return TRUE; //success!
-    } else if (argsLength == maxArgsLength) {
+    } else if (argsLength == maxArgsLength && args[locationOfPercent][0]=='%') {
         //(error checking gotten from stack overflow)
-        const char *nptr = args[locationOfPercent];     /* string to read as a number   */
+        const char *nptr = args[locationOfPercent]+locationOfPercent;     /* string to read as a number   */
         char *endptr = NULL;                            /* pointer to additional chars  */
         int base = 10;                                  /* numeric base (default 10)    */
         long long int number = 0;                       /* variable holding return      */
 
+        printf("Number to parse: %s\n", nptr);
         /* reset errno to 0 before call */
         errno = 0;
 
