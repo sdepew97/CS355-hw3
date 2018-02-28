@@ -54,8 +54,6 @@ int main (int argc, char **argv) {
         }
 
         free_all_jobs();
-        //break;
-
     }
 
     //free malloced memory
@@ -346,7 +344,7 @@ void launchJob(job *j, int foreground) {
 
     if (foreground) {
         put_job_in_foreground(j, 0);
-    } else { //TODO: check on this section of merge
+    } else {
         sigset_t mask;
         sigemptyset (&mask);
         sigaddset(&mask, SIGCHLD);
@@ -366,7 +364,7 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
     /* Put the process into the process group and give the process group
        the terminal, if appropriate.
        This has to be done both by the shell and in the individual
-       child processes because of potential race conditions.  */ //TODO: consider race conditions arising here!!
+       child processes because of potential race conditions.  */
     pid = getpid();
 
     if (pgid == 0) {
@@ -416,7 +414,6 @@ void put_job_in_foreground (job *j, int cont) {
     }
 
     /* Wait for it to report.  */
-    //wait_for_job(j); //TODO: wait for job here (add further code!!)?
     waitpid (j->pgid, &status, WUNTRACED);
 
     /* Put the shell back in the foreground.  */
@@ -441,7 +438,7 @@ void simple_background_job_setup(background_job *dest, job *org, int status)
 
 /* Put a job in the background.  If the cont argument is true, send
    the process group a SIGCONT signal to wake it up.  */
-void put_job_in_background(job *j, int cont, int status) { //TODO: check on merge here
+void put_job_in_background(job *j, int cont, int status) {
 
     /* Add job to the background list with status of running */
     background_job *copyOfJ = malloc(sizeof(background_job));
