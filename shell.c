@@ -178,14 +178,18 @@ void trim_background_process_list(pid_t pid_to_remove) {
     background_job *cur_background_job = all_background_jobs;
     background_job *prev_background_job = NULL;
     while (cur_background_job != NULL) {
-        if (cur_background_job->pgid == pid_to_remove) { //todo: check this code, since I don't think it works correctly...
+        if (cur_background_job->pgid == pid_to_remove) {
             if (prev_background_job == NULL) {
                 background_job *temp = cur_background_job->next_background_job;
+                //TODO: free cur_background_job
+                free_background_job(cur_background_job);
                 all_background_jobs = temp;
                 return;
             }
             else {
                 prev_background_job->next_background_job = cur_background_job->next_background_job;
+                //TODO: free cur_background_job here
+                free_background_job(cur_background_job);
                 return;
             }
         }

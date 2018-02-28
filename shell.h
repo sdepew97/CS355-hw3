@@ -131,4 +131,6 @@ int background_builtin(char** args);
 /* Method that uses tcsetpgrp() to foreground the process -- this is fg*/
 int foreground_builtin(char** args);
 
+void free_background_job(background_job *job1);
+
 #endif //HW3_SHELL_H
