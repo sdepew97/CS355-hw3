@@ -7,7 +7,7 @@ import random
 
 
 
-i = random.randint(1, 10)
+i = random.randint(1, 5)
 
 sleep(i)
 

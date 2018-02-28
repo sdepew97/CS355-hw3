@@ -45,19 +45,20 @@ int main (int argc, char **argv) {
     while (!EXIT) {
 
         perform_parse();
-
         job *currentJob = all_jobs;
 
         while (currentJob != NULL) {
-            launchJob(currentJob, !(currentJob->run_in_background));
+            if (!(currentJob->pass)) {
+                launchJob(currentJob, !(currentJob->run_in_background));
+            }
             currentJob = currentJob->next_job;
+            // break;
         }
-
         free_all_jobs();
-
+        // break;
     }
 
-    //free malloced memory
+    /* free any background jobs still in LL before exiting */
     free_background_jobs();
     return EXIT_SUCCESS;
 }
@@ -170,8 +171,7 @@ int isBackgroundJob(job* job1) {
     return job1->run_in_background == TRUE;
 }
 
-/* takes pgid to remove and removes corresponding pgid */
-/* note this is updated */
+/* takes pgid to remove and removes corresponding pgid, if it exists */
 void trim_background_process_list(pid_t pid_to_remove) {
     background_job *cur_background_job = all_background_jobs;
     background_job *prev_background_job = NULL;
@@ -180,10 +180,14 @@ void trim_background_process_list(pid_t pid_to_remove) {
             if (prev_background_job == NULL) {
                 background_job *temp = cur_background_job->next_background_job;
                 all_background_jobs = temp;
+                free(cur_background_job->job_string);
+                free(cur_background_job);
                 return;
             }
             else {
                 prev_background_job->next_background_job = cur_background_job->next_background_job;
+                free(cur_background_job->job_string);
+                free(cur_background_job);
                 return;
             }
         }
@@ -243,15 +247,12 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
     if (signum == SIGCHLD) {
         //TODO: finish covering all SIGCHLD codes and ensure this is working correctly...
         //in the case of the child being killed, remove it from the list of jobs
-        if(siginfo->si_code == CLD_KILLED || siginfo->si_code == CLD_DUMPED) {
+        if(siginfo->si_code == CLD_KILLED || siginfo->si_code == CLD_DUMPED || siginfo->si_code == CLD_EXITED) {
             trim_background_process_list(calling_id); //it has been killed and should be removed from the list of processes for job
         }
         //else if (siginfo->si_status != 0) {
         else if(siginfo->si_code == CLD_STOPPED) {
             job_suspend_helper(calling_id, 0, SUSPENDED);
-        }
-        else if(siginfo->si_code == CLD_EXITED) {
-            trim_background_process_list(calling_id);
         }
     }
 }
@@ -357,7 +358,7 @@ void launchJob(job *j, int foreground) {
 
     if (foreground) {
         put_job_in_foreground(j, 0);
-    } else { //TODO: check on this section of merge
+    } else { 
         sigset_t mask;
         sigemptyset (&mask);
         sigaddset(&mask, SIGCHLD);
@@ -406,9 +407,9 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
 
 
     /* Exec the new process.  Make sure we exit.  */
-    if (p->args[0] != NULL)
-        execvp(p->args[0], p->args);
-    perror("-bash: ");
+    execvp(p->args[0], p->args);
+    fprintf(stderr, "Error: %s: command not found\n", p->args[0]);
+    free_all_jobs();
     exit(TRUE);
 }
 
@@ -619,6 +620,7 @@ int kill_builtin(char **args) {
                 printf(" number : %lld    invalid  (since additional characters remain)\n", number);
                 return FALSE;
             }
+            printf("%d \n", number);
 
             //have location now in linked list
             int currentNode = 0;
@@ -836,7 +838,7 @@ void foreground_helper(background_job *bj) {
     tcsetpgrp(shell_terminal, shell_pgid);
 
     /* Restore the shell’s terminal modes.  */
-    tcgetattr(shell_terminal, &bj->termios_modes);
+    tcgetattr(shell_terminal, &shell_tmodes);
     tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
 }
 
@@ -913,7 +915,7 @@ int foreground_builtin(char** args) {
                 sigemptyset(&mask);
                 sigaddset(&mask, SIGCHLD);
                 sigprocmask(SIG_BLOCK, &mask, NULL);
-
+                printf("here\n ");
                 trim_background_process_list(pid);
 
                 sigprocmask(SIG_UNBLOCK, &mask, NULL);
@@ -961,7 +963,6 @@ int foreground_builtin(char** args) {
         sigemptyset(&mask);
         sigaddset(&mask, SIGCHLD);
         sigprocmask(SIG_BLOCK, &mask, NULL);
-
         trim_background_process_list(pid);
 
         sigprocmask(SIG_UNBLOCK, &mask, NULL);

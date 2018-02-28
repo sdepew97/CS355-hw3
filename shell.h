@@ -48,9 +48,11 @@ typedef struct job {
     char *job_string;
     char *full_job_string;
     int status;
+    int pass;
     struct termios termios_modes;
     int stdin;
     int stdout;
+    char **args;
     int stderr;
     int run_in_background;
     struct job *next_job;

@@ -65,14 +65,6 @@ char *get_next_token()
 	if (strncmp(t->pos, "\0", 1) == 0) {
 		return NULL;
 	}
-	else if (is_a_deliminator(t->pos)) {
-		/* might want to make this where syntax errors occur */
-		fprintf(stderr, "Syntax error near unexpected token %s \n", t->pos);
-		exit(EXIT_FAILURE);
-		token = t->pos;
-		t->pos++;
-		return token;
-	}
 	else {
 		while (!(is_a_deliminator(t->pos))) {
 			count++;
@@ -112,27 +104,46 @@ int lengthOf(char *str){
     return i;
 }
 
+/* check to see if job string has only white space and deliminators */
+int isWhiteSpaceJob(char *t)
+{
+	int i = 0;
+	char *pos = &t[0];
+	while (strncmp(pos, "\0", 1) != 0) {
+		if (!(strncmp(pos, " ", 1) == 0 || is_a_deliminator(pos))) {
+			return FALSE;
+		}
+		pos++;
+	}
+	return TRUE;
+}
+
 /*
  * Transforms all jobs global into first job in job LL and returns the number of jobs to run
- * 
- * BUGS: Doesn't like things like &; or asddas &; which is fine but need to catch those and throw syntax error
- * 		>>> Currently just puts one process in one job, will expand once we get to piping b/ I don't want to deal right now
  */
 int perform_parse() 
 {
 	char *line = NULL;
 
 	/* readline causes leak */
-    line = readline(PROMPT);
+	line = readline(PROMPT);
+	// char *line = malloc(sizeof(char) * 1024);
+	// if (line < 0) {
+	// 	fprintf(stderr, "malloc failed \n");
+	// }
+	// snprintf(line, 1024, "blah");
+    // line = "pwd";
 	// line = "python test.py &  python test.py & python test.py & python test.py & python test.py & python test.py & python test.py & python test.py & python test.py &";
 
 	/* handle c-d */
 	if (line == NULL) {
+		printf("\n");
 		return EXIT;
 	}
 
 	/* handle return */
 	if (strcmp(line,"") == 0) {
+		free(line);
 		return EXIT;
 	}
 
@@ -173,6 +184,13 @@ int perform_parse()
 		cur_job->stdin = STDIN_FILENO;
 		cur_job->stdout = STDOUT_FILENO;
 		cur_job->stderr = STDERR_FILENO;
+		cur_job->pass = FALSE;
+
+		/* Unfortunately, our parsing will create whitespace token jobs
+		 * because we split on deliminators and then white space */ 
+		if (isWhiteSpaceJob(token)) {
+			cur_job->pass = TRUE;
+		}
 
 		if (strncmp(last_element_of(cur_job->job_string), "&", 1) == 0) {
 			int l = strlen(cur_job->job_string);
@@ -190,8 +208,6 @@ int perform_parse()
 		cur_job = new_job;
 	}
 
-	/* need to add second layer of delimination for multiple processes within same job
-	 * this should be done if we want to get piping and redirection working */
 	job *temp_job = all_jobs; 
 	while ((temp_job) != NULL) {
 		process *cur_process;
