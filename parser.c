@@ -133,6 +133,9 @@ int perform_parse()
 
 	/* handle return */
 	if (strcmp(line,"") == 0) {
+		if(line != NULL) {
+			free(line);
+		}
 		return EXIT;
 	}
 
