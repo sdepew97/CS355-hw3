@@ -123,8 +123,10 @@ int perform_parse()
 	char *line = NULL;
 
 	/* readline causes leak */
-    line = readline(PROMPT);
+//    line = readline(PROMPT);
 	// line = "python test.py &  python test.py & python test.py & python test.py & python test.py & python test.py & python test.py & python test.py & python test.py &";
+	line = malloc(5);
+	line = "test\n";
 
 	/* handle c-d */
 	if (line == NULL) {
@@ -234,7 +236,9 @@ void free_all_jobs() {
         process *temp_p = all_jobs->first_process;
         temp_p->next_process = NULL;
         while (temp_p != NULL) {
-            free(temp_p->args);
+			if(temp_p->args!=NULL) {
+				free(temp_p->args);
+			}
             process *t = temp_p->next_process;
             free(temp_p);
             temp_p = t;
