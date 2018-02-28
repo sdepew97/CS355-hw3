@@ -54,12 +54,12 @@ int main (int argc, char **argv) {
         }
 
         free_all_jobs();
-
+        break;
     }
 
     //free malloced memory
     //TODO: kill background jobs
-    free_all_jobs();
+    //free_all_jobs();
     free_background_jobs();
     return EXIT_SUCCESS;
 }

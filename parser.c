@@ -125,8 +125,8 @@ int perform_parse()
 	/* readline causes leak */
 //    line = readline(PROMPT);
 	// line = "python test.py &  python test.py & python test.py & python test.py & python test.py & python test.py & python test.py & python test.py & python test.py &";
-	line = malloc(5);
-	line = "test\n";
+	line = (char*) malloc(12*sizeof(char));
+	strcpy(line, "testingonly");
 
 	/* handle c-d */
 	if (line == NULL) {
