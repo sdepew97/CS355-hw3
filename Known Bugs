@@ -1,10 +1,6 @@
-Known Bugs:
-1) Bug with SEGFAULT when you run exit sometimes (and not other times...haven't been able to catch it with gdb, yet!)
-2) issue with strlen with parsing? got some funny errors with ls & ; cd? (wonder if there is an issue with null termination)
-3) potential concurrency issues, since SIGCHLD is not yet implemented at all...
-4) segfault in split whitespace
-5) issue with backgrounding jobs that causes core dump to occur
-6) "cd.." causes a memory leak
+﻿Known Bugs:
+1) issue with backgrounding jobs that causes core dump to occur
+2) "cd.." causes a memory leak
 
 ==25223== 55 bytes in 8 blocks are definitely lost in loss record 14 of 46
 ==25223==    at 0x4C2CEDF: malloc (vg_replace_malloc.c:299)
@@ -14,13 +10,15 @@ Known Bugs:
 ==25223==    by 0x10A824: perform_parse (in /home/sdepew/CS355/hw3/shell)
 ==25223==    by 0x109192: main (in /home/sdepew/CS355/hw3/shell)
 
-7) try to background job and get infinite loop..
-8) [sdepew@canopus hw3]$ who& ; ls&
-   -bash: syntax error near unexpected token `;'
-8) emacs, ls, then jobs and get infinite loop
+3) background, foreground, background = segfault! 
+4) whitespace commands with the null (in the parser, drop the args list if first thing is a space)
+5) readline is causing memory leaks 
+6) who& ; ls& issue with jobs list
+7) who & ; ls & issue with syntax error 
+8) error with starting a bunch at one time for python.py
 
 
 To Be Done:
 1) Concurrency
-2) SIGCHLD handler
+2) SIGCHLD handler beefing up 
 3) CTRL-Z functionality

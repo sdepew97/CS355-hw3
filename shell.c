@@ -219,14 +219,17 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
     int signum = siginfo->si_signo;
     pid_t calling_id = siginfo->si_pid;
     // printf(">> %d\n", siginfo->si_code);
-    // printf("cld stopped %d \n", siginfo->si_code);
+    // printf("cld code %d \n", siginfo->si_code);
     // printf("sig num %d \n", signum);
     // printf("sig num if SIGCHLD %d \n ", SIGCHLD);
+    // printf("CLD_EXITED %d", CLD_EXITED);
+    // printf("CLD_KILLED %d", CLD_KILLED);
 
     if (signum == SIGCHLD) {
         //TODO: finish covering all SIGCHLD codes and ensure this is working correctly...
         //in the case of the child being killed, remove it from the list of jobs
         if(siginfo->si_code == CLD_KILLED || siginfo->si_code == CLD_DUMPED) {
+            printf("hello to kill\n");
             trim_background_process_list(calling_id); //it has been killed and should be removed from the list of processes for job
         }
         //else if (siginfo->si_status != 0) {
@@ -235,6 +238,9 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
         }
         else if(siginfo->si_code == CLD_CONTINUED) {
             printf("child continued");
+        }
+        else if(siginfo->si_code == CLD_EXITED) {
+          trim_background_process_list(calling_id); //trim if in the background, so we are able to check in this method if it is running in the background 
         }
     }
 }
@@ -369,7 +375,7 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
 
     setpgid(pid, pgid);
 
-    printf("pid: %d\n", pid);
+    //printf("pid: %d\n", pid);
 
     if (foreground) {
         if (tcsetpgrp(shell_terminal, pgid) < 0) {
@@ -539,15 +545,6 @@ int kill_builtin(char **args) {
                 currentNode++;
                 //found your node
                 if (currentNode == number) {
-                    /* sig proc mask this */
-                    sigset_t mask;
-                    sigemptyset(&mask);
-                    sigaddset(&mask, SIGCHLD);
-                    sigprocmask(SIG_BLOCK, &mask, NULL);
-
-                    background_built_in_helper(currentJob, TRUE, RUNNING);
-
-                    sigprocmask(SIG_UNBLOCK, &mask, NULL);
                     break;
                 } else {
                     currentJob = currentJob->next_background_job;
@@ -565,6 +562,15 @@ int kill_builtin(char **args) {
                     printError("I am sorry, an error occurred with kill.\n");
                     return FALSE; //error occurred
                 } else {
+                  /* sig proc mask this */
+                  sigset_t mask;
+                  sigemptyset(&mask);
+                  sigaddset(&mask, SIGCHLD);
+                  sigprocmask(SIG_BLOCK, &mask, NULL);
+
+                  trim_background_process_list(pid);
+
+                  sigprocmask(SIG_UNBLOCK, &mask, NULL);
                     return TRUE;
                 }
             }
@@ -616,15 +622,6 @@ int kill_builtin(char **args) {
                 currentNode++;
                 //found your node
                 if (currentNode == number) {
-                    /* sig proc mask this */
-                    sigset_t mask;
-                    sigemptyset(&mask);
-                    sigaddset(&mask, SIGCHLD);
-                    sigprocmask(SIG_BLOCK, &mask, NULL);
-
-                    background_built_in_helper(currentJob, TRUE, RUNNING);
-
-                    sigprocmask(SIG_UNBLOCK, &mask, NULL);
                     break;
                 } else {
                     currentJob = currentJob->next_background_job;
@@ -642,6 +639,15 @@ int kill_builtin(char **args) {
                     printError("I am sorry, an error occurred with kill.\n");
                     return FALSE; //error occurred
                 } else {
+                  /* sig proc mask this */
+                  sigset_t mask;
+                  sigemptyset(&mask);
+                  sigaddset(&mask, SIGCHLD);
+                  sigprocmask(SIG_BLOCK, &mask, NULL);
+
+                  trim_background_process_list(pid);
+
+                  sigprocmask(SIG_UNBLOCK, &mask, NULL);
                     return TRUE;
                 }
             }
