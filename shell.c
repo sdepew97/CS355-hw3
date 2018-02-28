@@ -444,6 +444,7 @@ int exit_builtin(char **args) {
 
 /* Method to take a job id and send a SIGTERM to terminate the process.*/
 int kill_builtin(char **args) {
+    char *flag = "-9\0";
     int flagLocation = 1;
     int pidLocationNoFlag = 1;
     int pidLocation = 2;
