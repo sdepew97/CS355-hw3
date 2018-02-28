@@ -18,9 +18,66 @@ Known Bugs:
 8) [sdepew@canopus hw3]$ who& ; ls&
    -bash: syntax error near unexpected token `;'
 8) emacs, ls, then jobs and get infinite loop
+9) memory leaks
 
+
+==13389==
+==13389== HEAP SUMMARY:
+==13389==     in use at exit: 33,020 bytes in 5 blocks
+==13389==   total heap usage: 12 allocs, 7 frees, 34,848 bytes allocated
+==13389==
+==13389== Searching for pointers to 5 not-freed blocks
+==13389== Checked 104,200 bytes
+==13389==
+==13389== 12 bytes in 1 blocks are still reachable in loss record 1 of 5
+==13389==    at 0x4C2CEDF: malloc (vg_replace_malloc.c:299)
+==13389==    by 0x10B8C5: perform_parse (in /home/sdepew/CS355/hw3/shell)
+==13389==    by 0x1091DB: main (in /home/sdepew/CS355/hw3/shell)
+==13389==
+==13389== 32 bytes in 1 blocks are still reachable in loss record 2 of 5
+==13389==    at 0x4C2CEDF: malloc (vg_replace_malloc.c:299)
+==13389==    by 0x10BA24: perform_parse (in /home/sdepew/CS355/hw3/shell)
+==13389==    by 0x1091DB: main (in /home/sdepew/CS355/hw3/shell)
+==13389==
+==13389== 88 bytes in 1 blocks are still reachable in loss record 3 of 5
+==13389==    at 0x4C2CEDF: malloc (vg_replace_malloc.c:299)
+==13389==    by 0x10B63E: get_next_token (in /home/sdepew/CS355/hw3/shell)
+==13389==    by 0x10B9FB: perform_parse (in /home/sdepew/CS355/hw3/shell)
+==13389==    by 0x1091DB: main (in /home/sdepew/CS355/hw3/shell)
+==13389==
+==13389== 120 bytes in 1 blocks are still reachable in loss record 4 of 5
+==13389==    at 0x4C2CEDF: malloc (vg_replace_malloc.c:299)
+==13389==    by 0x10B87E: perform_parse (in /home/sdepew/CS355/hw3/shell)
+==13389==    by 0x1091DB: main (in /home/sdepew/CS355/hw3/shell)
+==13389==
+==13389== 32,768 bytes in 1 blocks are still reachable in loss record 5 of 5
+==13389==    at 0x4C2CEDF: malloc (vg_replace_malloc.c:299)
+==13389==    by 0x10B3D8: split_white_space (in /home/sdepew/CS355/hw3/shell)
+==13389==    by 0x10BA3F: perform_parse (in /home/sdepew/CS355/hw3/shell)
+==13389==    by 0x1091DB: main (in /home/sdepew/CS355/hw3/shell)
+==13389==
+==13389== LEAK SUMMARY:
+==13389==    definitely lost: 0 bytes in 0 blocks
+==13389==    indirectly lost: 0 bytes in 0 blocks
+==13389==      possibly lost: 0 bytes in 0 blocks
+==13389==    still reachable: 33,020 bytes in 5 blocks
+==13389==         suppressed: 0 bytes in 0 blocks
+==13389==
+==13389== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==13389== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==13388==
+==13388== HEAP SUMMARY:
+==13388==     in use at exit: 0 bytes in 0 blocks
+==13388==   total heap usage: 10 allocs, 10 frees, 33,272 bytes allocated
+==13388==
+==13388== All heap blocks were freed -- no leaks are possible
+==13388==
+==13388== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==13388== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 
 To Be Done:
 1) Concurrency
 2) SIGCHLD handler
 3) CTRL-Z functionality
+4) printing out the messages on built in calls (with pid etc like linux)
+5) memory leaks!

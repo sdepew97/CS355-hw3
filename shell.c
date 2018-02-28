@@ -89,7 +89,7 @@ void initializeShell() {
         memset(&childreturn, 0, sizeof(childreturn));
         childreturn.sa_sigaction = &childReturning;
         sigset_t mask;
-        sigemptyset (&mask);
+        sigemptyset(&mask);
         sigaddset(&mask, SIGCHLD);
         childreturn.sa_mask = mask;
         /* add sig set for sig child and sigtstp */
@@ -144,7 +144,7 @@ void printError(char* message) {
 /* Frees commands and displays error message */
 void handleError(char* message, char **commands, int numCommands) {
     printf("%s", message);
-    for(int i=0; i<numCommands; i++) {
+    for (int i = 0; i < numCommands; i++) {
         printf("%s ", commands[i]); //something like "I am sorry, but the input string is invalid"
     }
 }
@@ -167,14 +167,12 @@ void trim_background_process_list(pid_t pid_to_remove) {
                 free_background_job(cur_background_job);
                 all_background_jobs = temp;
                 return;
-            }
-            else {
+            } else {
                 prev_background_job->next_background_job = cur_background_job->next_background_job;
                 free_background_job(cur_background_job);
                 return;
             }
-        }
-        else{
+        } else {
             prev_background_job = cur_background_job;
             cur_background_job = cur_background_job->next_background_job;
         }
@@ -228,14 +226,14 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
     if (signum == SIGCHLD) {
         //TODO: finish covering all SIGCHLD codes and ensure this is working correctly...
         //in the case of the child being killed, remove it from the list of jobs
-        if(siginfo->si_code == CLD_KILLED || siginfo->si_code == CLD_DUMPED) {
-            trim_background_process_list(calling_id); //it has been killed and should be removed from the list of processes for job
+        if (siginfo->si_code == CLD_KILLED || siginfo->si_code == CLD_DUMPED) {
+            trim_background_process_list(
+                    calling_id); //it has been killed and should be removed from the list of processes for job
         }
-        //else if (siginfo->si_status != 0) {
-        else if(siginfo->si_code == CLD_STOPPED) {
+            //else if (siginfo->si_status != 0) {
+        else if (siginfo->si_code == CLD_STOPPED) {
             job_suspend_helper(calling_id, 0, SUSPENDED);
-        }
-        else if(siginfo->si_code == CLD_EXITED) {
+        } else if (siginfo->si_code == CLD_EXITED) {
             trim_background_process_list(calling_id);
         }
     }
@@ -245,8 +243,8 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
  * built-in commands and -1 if it is not in the array allBuiltIns
  */
 int isBuiltInCommand(process cmd) {
-    for(int i=0; i<NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
-        if(process_equals(cmd, allBuiltIns[i])) {
+    for (int i = 0; i < NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
+        if (process_equals(cmd, allBuiltIns[i])) {
             return i; //return index of command
         }
     }
@@ -311,7 +309,7 @@ void launchJob(job *j, int foreground) {
         put_job_in_foreground(j, 0);
     } else {
         sigset_t mask;
-        sigemptyset (&mask);
+        sigemptyset(&mask);
         sigaddset(&mask, SIGCHLD);
         sigprocmask(SIG_BLOCK, &mask, NULL);
 
@@ -376,7 +374,7 @@ void put_job_in_foreground (job *j, int cont) {
     tcgetattr(shell_terminal, &j->termios_modes);
 
     /* Wait for it to report.  */
-    waitpid (j->pgid, &status, WUNTRACED);
+    waitpid(j->pgid, &status, WUNTRACED);
 
     /* Put the shell back in the foreground.  */
     tcsetpgrp(shell_terminal, shell_pgid);
@@ -387,8 +385,7 @@ void put_job_in_foreground (job *j, int cont) {
 }
 
 /* takes background job and gives it to background job */
-void simple_background_job_setup(background_job *dest, job *org, int status)
-{
+void simple_background_job_setup(background_job *dest, job *org, int status) {
     dest->pgid = org->pgid;
     dest->status = status;
     dest->termios_modes = org->termios_modes; // <<< potential source of error here? valgrind and fg seems to be complaing about unitialized bytes
@@ -419,8 +416,7 @@ void put_job_in_background(job *j, int cont, int status) { //TODO: check on merg
             }
             cur_job->next_background_job = copyOfJ;
         }
-    }
-    else {
+    } else {
         if (kill(-j->pgid, SIGCONT) < 0) {
             perror("kill (SIGCONT)");
         }
@@ -458,11 +454,11 @@ int kill_builtin(char **args) {
         //invalid arguments
         printError("I am sorry, but you have passed an invalid number of arguments to kill.\n");
         return FALSE;
-    } else if (argsLength == maxElements && args[pidLocation][0]=='%') {
+    } else if (argsLength == maxElements && args[pidLocation][0] == '%') {
         if (strcmp(args[flagLocation],
-                    flag)==0) { //check that -9 flag was input correctly, otherwise try sending kill with pid
+                   flag) == 0) { //check that -9 flag was input correctly, otherwise try sending kill with pid
             //(error checking gotten from stack overflow)
-            const char *nptr = args[pidLocation]+pidLocationNoFlag;  /* string to read as a number      */
+            const char *nptr = args[pidLocation] + pidLocationNoFlag;  /* string to read as a number      */
             char *endptr = NULL;                            /* pointer to additional chars  */
             int base = 10;                                  /* numeric base (default 10)    */
             long long int number = 0;                       /* variable holding return      */
@@ -509,7 +505,7 @@ int kill_builtin(char **args) {
             }
 
             //node was not found!
-            if (currentNode < number) {
+            if (currentNode < number || number <= 0) {
                 printError("I am sorry, but that job does not exist.\n");
                 return FALSE;
             } else {
@@ -519,15 +515,15 @@ int kill_builtin(char **args) {
                     printError("I am sorry, an error occurred with kill.\n");
                     return FALSE; //error occurred
                 } else {
-                  /* sig proc mask this */
-                  sigset_t mask;
-                  sigemptyset(&mask);
-                  sigaddset(&mask, SIGCHLD);
-                  sigprocmask(SIG_BLOCK, &mask, NULL);
+                    /* sig proc mask this */
+                    sigset_t mask;
+                    sigemptyset(&mask);
+                    sigaddset(&mask, SIGCHLD);
+                    sigprocmask(SIG_BLOCK, &mask, NULL);
 
-                  trim_background_process_list(pid);
+                    trim_background_process_list(pid);
 
-                  sigprocmask(SIG_UNBLOCK, &mask, NULL);
+                    sigprocmask(SIG_UNBLOCK, &mask, NULL);
                     return TRUE;
                 }
             }
@@ -586,7 +582,7 @@ int kill_builtin(char **args) {
             }
 
             //node was not found!
-            if (currentNode < number) {
+            if (currentNode < number || number <= 0) {
                 printError("I am sorry, but that job does not exist.\n");
                 return FALSE;
             } else {
@@ -596,15 +592,15 @@ int kill_builtin(char **args) {
                     printError("I am sorry, an error occurred with kill.\n");
                     return FALSE; //error occurred
                 } else {
-                  /* sig proc mask this */
-                  sigset_t mask;
-                  sigemptyset(&mask);
-                  sigaddset(&mask, SIGCHLD);
-                  sigprocmask(SIG_BLOCK, &mask, NULL);
+                    /* sig proc mask this */
+                    sigset_t mask;
+                    sigemptyset(&mask);
+                    sigaddset(&mask, SIGCHLD);
+                    sigprocmask(SIG_BLOCK, &mask, NULL);
 
-                  trim_background_process_list(pid);
+                    trim_background_process_list(pid);
 
-                  sigprocmask(SIG_UNBLOCK, &mask, NULL);
+                    sigprocmask(SIG_UNBLOCK, &mask, NULL);
                     return TRUE;
                 }
             }
@@ -620,11 +616,12 @@ int jobs_builtin(char **args) {
     char *status[] = {running, suspended};
     int jobID = 1;
 
-    if (currentJob == NULL) { } // do nothing 
+    if (currentJob == NULL) {} // do nothing
     else {
         while (currentJob != NULL) {
             //print out formatted information for processes in job
-            printf("[%d]\t %d %s \t\t %s\n", jobID, currentJob->pgid, status[currentJob->status], currentJob->job_string);
+            printf("[%d]\t %d %s \t\t %s\n", jobID, currentJob->pgid, status[currentJob->status],
+                   currentJob->job_string);
             jobID++;
 
             //get next job
@@ -680,7 +677,7 @@ int background_builtin(char **args) {
         }
 
         sigset_t mask;
-        sigemptyset (&mask);
+        sigemptyset(&mask);
         sigaddset(&mask, SIGCHLD);
         sigprocmask(SIG_BLOCK, &mask, NULL);
 
@@ -689,9 +686,9 @@ int background_builtin(char **args) {
         sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
         return TRUE; //success!
-    } else if (argsLength == maxArgsLength && args[locationOfPercent][0]=='%') {
+    } else if (argsLength == maxArgsLength && args[locationOfPercent][0] == '%') {
         //(error checking gotten from stack overflow)
-        const char *nptr = args[locationOfPercent]+locationOfPercent;     /* string to read as a number   */
+        const char *nptr = args[locationOfPercent] + locationOfPercent;     /* string to read as a number   */
         char *endptr = NULL;                            /* pointer to additional chars  */
         int base = 10;                                  /* numeric base (default 10)    */
         long long int number = 0;                       /* variable holding return      */
@@ -729,12 +726,12 @@ int background_builtin(char **args) {
         background_job *currentJob = all_background_jobs;
 
         while (currentJob != NULL) {
-            currentNode ++;
+            currentNode++;
             //found your node
-            if(currentNode == number) {
+            if (currentNode == number) {
                 /* sig proc mask this */
                 sigset_t mask;
-                sigemptyset (&mask);
+                sigemptyset(&mask);
                 sigaddset(&mask, SIGCHLD);
                 sigprocmask(SIG_BLOCK, &mask, NULL);
 
@@ -742,14 +739,13 @@ int background_builtin(char **args) {
 
                 sigprocmask(SIG_UNBLOCK, &mask, NULL);
                 return TRUE;
-            }
-            else {
+            } else {
                 currentJob = currentJob->next_background_job;
             }
         }
 
         //node was not found!
-        if(currentNode < number) {
+        if (currentNode < number || number <= 0) {
             printError("I am sorry, but that job does not exist.\n");
         }
     }
@@ -781,7 +777,7 @@ void foreground_helper(background_job *bj) {
         perror("kill (SIGCONT)");
 
     /* if the system call is interupted, wait agian */
-    waitpid(bj->pgid , &status, WUNTRACED);
+    waitpid(bj->pgid, &status, WUNTRACED);
 
     /* Put the shell back in the foreground.  */
     tcsetpgrp(shell_terminal, shell_pgid);
@@ -876,7 +872,7 @@ int foreground_builtin(char** args) {
         }
 
         //node was not found!
-        if (currentNode < number) {
+          if (currentNode < number || number <= 0) {
             printError("I am sorry, but that job does not exist.\n");
             return FALSE;
         }
