@@ -124,7 +124,7 @@ int perform_parse()
 
 	/* readline causes leak */
     line = readline(PROMPT);
-	// line = "ls ; ";
+	// line = "python test.py &  python test.py & python test.py & python test.py & python test.py & python test.py & python test.py & python test.py & python test.py &";
 
 	/* handle c-d */
 	if (line == NULL) {
