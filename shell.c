@@ -64,23 +64,6 @@ int main (int argc, char **argv) {
     return EXIT_SUCCESS;
 }
 
-void printoutargs() {
-    job *temp_job;
-    temp_job = all_jobs;
-    while (temp_job != NULL) {
-        process *temp_proc = temp_job->first_process;
-        while (temp_proc != NULL) {
-            int i = 0;
-            while ((temp_proc->args)[i] != NULL) {
-                printf("%s \n", (temp_proc->args)[i]);
-                i++;
-            }
-            temp_proc = temp_proc->next_process;
-        }
-        temp_job = temp_job->next_job;
-    }
-}
-
 /* Make sure the shell is running interactively as the foreground job
    before proceeding. */ // modeled after https://www.gnu.org/software/libc/manual/html_node/Initializing-the-Shell.html
 void initializeShell() {
@@ -172,7 +155,7 @@ int isBackgroundJob(job* job1) {
     return job1->run_in_background == TRUE;
 }
 
-/* takes pgid to remove and removes corresponding pgid */
+/* Takes pgid to remove and removes corresponding pgid */
 /* note this is updated */
 void trim_background_process_list(pid_t pid_to_remove) {
     background_job *cur_background_job = all_background_jobs;
@@ -181,14 +164,12 @@ void trim_background_process_list(pid_t pid_to_remove) {
         if (cur_background_job->pgid == pid_to_remove) {
             if (prev_background_job == NULL) {
                 background_job *temp = cur_background_job->next_background_job;
-                //TODO: free cur_background_job
                 free_background_job(cur_background_job);
                 all_background_jobs = temp;
                 return;
             }
             else {
                 prev_background_job->next_background_job = cur_background_job->next_background_job;
-                //TODO: free cur_background_job here
                 free_background_job(cur_background_job);
                 return;
             }
@@ -202,7 +183,6 @@ void trim_background_process_list(pid_t pid_to_remove) {
 
 job *package_job(background_job *cur_job) {
     job *to_return = malloc(sizeof(job));
-
     to_return->pgid = cur_job->pgid;
     to_return->status = cur_job->status;
     to_return->full_job_string = malloc(lengthOf(cur_job->job_string) + 1);
@@ -232,7 +212,6 @@ void job_suspend_helper(pid_t calling_id, int cont, int status) {
         }
         check_foreground = check_foreground->next_job;
     }
-
 }
 
 /* child process has terminated and so we need to remove the process from the linked list (by pid).
@@ -261,39 +240,6 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
         }
     }
 }
-
-/* This method is simply the remove node method called when a node needs to be removed from the list of jobs. */
-void removeNode(pid_t pidToRemove) {
-    //look through jobs for pid of child to remove
-    job *currentJob = all_jobs;
-
-    process *currentProcess = NULL;
-    process *nextProcess = NULL;
-
-    while (currentJob != NULL) {
-        //the pid of the first job process matches, then update job pointer!
-        currentProcess = currentJob->first_process;
-        if (currentProcess != NULL && currentProcess->pid == pidToRemove) {
-            currentJob->first_process = currentProcess->next_process;
-            return;
-        } else { //look at all processes w/in job for pid not the first one
-            while (currentProcess != NULL) {
-                nextProcess = currentProcess->next_process;
-                if (nextProcess->pid == pidToRemove) {
-                    //found the pidToRemove, free, and an reset pointers
-                    currentProcess->next_process = nextProcess->next_process;
-                    free(nextProcess);
-                    return;
-                }
-                currentProcess = nextProcess;
-            }
-        }
-
-        //pid not found in list of current processes for prior viewed job, get next job
-        currentJob = currentJob->next_job;
-    }
-}
-
 
 /* Passes in the command to check. Returns the index of the built-in command if it’s in the array of
  * built-in commands and -1 if it is not in the array allBuiltIns
@@ -356,14 +302,14 @@ void launchJob(job *j, int foreground) {
                     j->pgid = pid;
                 }
 
-                setpgid(pid, j->pgid); //TODO: check process group ids being altered correctly
+                setpgid(pid, j->pgid);
             }
         }
     }
 
     if (foreground) {
         put_job_in_foreground(j, 0);
-    } else { //TODO: check on this section of merge
+    } else {
         sigset_t mask;
         sigemptyset (&mask);
         sigaddset(&mask, SIGCHLD);
@@ -492,14 +438,12 @@ int arrayLength(char **array) {
 
 /* Let's have this clean up the job list */
 int exit_builtin(char **args) {
-    free_background_jobs();
     EXIT = TRUE;
     return EXIT; //success
 }
 
 /* Method to take a job id and send a SIGTERM to terminate the process.*/
 int kill_builtin(char **args) {
-    char *flag = "-9\0";
     int flagLocation = 1;
     int pidLocationNoFlag = 1;
     int pidLocation = 2;
@@ -971,7 +915,6 @@ int foreground_builtin(char** args) {
         trim_background_process_list(pid);
 
         sigprocmask(SIG_UNBLOCK, &mask, NULL);
-
 
         return TRUE;
     }

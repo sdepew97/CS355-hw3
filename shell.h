@@ -64,8 +64,6 @@ typedef struct background_job {
     struct termios termios_modes;
 } background_job;
 
-void printoutargs();
-
 int lengthOf(char *str);
 
 int arrayLength(char **array);
@@ -86,9 +84,6 @@ int isBackgroundJob(job* job1);
 /* child process has terminated and so we need to remove the process from the linked list (by pid).
  * We would call this function in the signal handler when getting a SIGCHLD signal. */
 void childReturning(int sig, siginfo_t *siginfo, void *context);
-
-/* This method is simply the remove node method called when a node needs to be removed from the list of jobs. */
-void removeNode(pid_t pidToRemove);
 
 /* Passes in the command to check. Returns the index of the built-in command if it’s in the array of built-in commands and -1 if it is not in the array allBuiltIns */
 int isBuiltInCommand(process cmd);
@@ -131,6 +126,7 @@ int background_builtin(char** args);
 /* Method that uses tcsetpgrp() to foreground the process -- this is fg*/
 int foreground_builtin(char** args);
 
+/* Method to free a single background job. */
 void free_background_job(background_job *job1);
 
 #endif //HW3_SHELL_H
