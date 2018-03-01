@@ -208,7 +208,6 @@ job *package_job(background_job *cur_job) {
 }
 
 void job_suspend_helper(pid_t calling_id) {
-
     /* if job is in background, just update status */ 
     background_job *cur_job = all_background_jobs;
     while (cur_job != NULL) {
@@ -228,7 +227,6 @@ void job_suspend_helper(pid_t calling_id) {
         }
         check_foreground = check_foreground->next_job;
     }
-
 }
 
 /* child process has terminated and so we need to remove the process from the linked list (by pid) */
@@ -510,9 +508,12 @@ void background_built_in_helper(background_job *bj, int cont, int status) {
     }
 
     background_job *current_job = all_background_jobs;
+    int index = 0;
     while (current_job != NULL) {
+        index ++;
         if (current_job->pgid == bj->pgid) {
             current_job->status = RUNNING;
+            printf("%d\t\t%s\n", index, bj->job_string);
         }
         current_job = current_job->next_background_job;
     }
@@ -542,7 +543,9 @@ void foreground_helper(background_job *bj) {
     if (kill(-bj->pgid, SIGCONT) < 0)
         perror("kill (SIGCONT)");
 
-    /* if the system call is interupted, wait agian */
+    printf("%d\n", bj->pgid); //print statement
+
+    /* if the system call is interrupted, wait again */
     waitpid(bj->pgid , &status, WUNTRACED);
 
     /* Put the shell back in the foreground.  */
