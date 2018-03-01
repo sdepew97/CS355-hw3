@@ -513,7 +513,7 @@ void background_built_in_helper(background_job *bj, int cont, int status) {
         index ++;
         if (current_job->pgid == bj->pgid) {
             current_job->status = RUNNING;
-            printf("%d\t\t%s\n", index, bj->job_string);
+            printf("[%d]\t\t%s\n", index, bj->job_string);
         }
         current_job = current_job->next_background_job;
     }
