@@ -237,6 +237,7 @@ void job_suspend_helper(pid_t calling_id) {
     /* other wise it must be a job being run for a first time */
     job *check_foreground = all_jobs;
     while (check_foreground != NULL) {
+        printf("here\n");
         if (check_foreground->pgid == calling_id) {
             put_job_in_background(check_foreground, 0, SUSPENDED);
             return;
@@ -258,7 +259,8 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
         }
         //else if (siginfo->si_status != 0) {
         else if(siginfo->si_code == CLD_STOPPED) {
-//            job_suspend_helper(calling_id);
+//          job_suspend_helper(calling_id);
+//            printf("sigchld\n");
             trydelete *newTryDelete = malloc(sizeof(trydelete));
             newTryDelete->pidToDelete = calling_id;
             newTryDelete->next = trydelete1;
