@@ -259,8 +259,12 @@ void free_all_jobs() {
 }
 
 void free_background_jobs() {
-	while (all_background_jobs != NULL) {
-		free(all_background_jobs->job_string);
-		all_background_jobs = all_background_jobs->next_background_job;
+	background_job *bg = all_background_jobs;
+	while (bg != NULL) {
+		background_job *temp; 
+		temp = bg->next_background_job;
+		free(bg->job_string);
+		free(bg);
+		bg = temp;
 	}
 }

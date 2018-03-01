@@ -94,6 +94,7 @@ void initializeShell() {
 
         /* Ignore interactive and job-control signals.  */
         signal(SIGINT, SIG_IGN);
+        signal(SIGTERM, SIG_IGN);
         signal(SIGQUIT, SIG_IGN);
         signal(SIGTTIN, SIG_IGN);
         signal(SIGTTOU, SIG_IGN);
@@ -209,19 +210,7 @@ job *package_job(background_job *cur_job) {
 }
 
 void job_suspend_helper(pid_t calling_id, int cont, int status) {
-    /* check background jobs */
-
-    background_job *cur_job = all_background_jobs;
-    while (cur_job != NULL) {
-        if (cur_job->pgid == calling_id) {
-            job *to_background = package_job(cur_job);
-            put_job_in_background(to_background, 0, status);
-            return;
-        }
-        cur_job = cur_job->next_background_job;
-    }
-
-    /* check foreground jobs */
+    /* if jobs isn't already in background, add it*/
     job *check_foreground = all_jobs;
     while (check_foreground != NULL) {
         if (check_foreground->pgid == calling_id) {
@@ -231,15 +220,21 @@ void job_suspend_helper(pid_t calling_id, int cont, int status) {
         check_foreground = check_foreground->next_job;
     }
 
+    /* if job is in background, just update status */ 
+    background_job *cur_job = all_background_jobs;
+    while (cur_job != NULL) {
+        if (cur_job->pgid == calling_id) {
+            // job *to_background = package_job(cur_job);
+            // put_job_in_background(to_background, 0, status);
+            cur_job->status = SUSPENDED;
+            return;
+        }
+        cur_job = cur_job->next_background_job;
+    }
+
 }
 
-/* child process has terminated and so we need to remove the process from the linked list (by pid).
- * We would call this function in the signal handler when getting a SIGCHLD signal. */
-/*
- * Problem occurring where job strings of failed execvp's get added to jobs list
- * ie "asdf" as prompt will be printed as suspended in jobs
- *
- */
+/* child process has terminated and so we need to remove the process from the linked list (by pid) */
 void childReturning(int sig, siginfo_t *siginfo, void *context) {
     int signum = siginfo->si_signo;
     pid_t calling_id = siginfo->si_pid;
@@ -322,14 +317,14 @@ int executeBuiltInCommand(process *process1, int index) {
 void launchJob(job *j, int foreground) {
     process *p;
     pid_t pid;
+    int isBuiltIn;
     for (p = j->first_process; p; p = p->next_process) {
-        int isBuiltIn = isBuiltInCommand(*p);
+        isBuiltIn = isBuiltInCommand(*p);
 
         //run as a built-in command
         if (isBuiltIn != NOT_FOUND) {
             //printf("built in");
             executeBuiltInCommand(p, isBuiltIn);
-            foreground = TRUE;
         }
             //run through execvp
         else {
@@ -356,17 +351,19 @@ void launchJob(job *j, int foreground) {
         }
     }
 
-    if (foreground) {
-        put_job_in_foreground(j, 0);
-    } else { 
-        sigset_t mask;
-        sigemptyset (&mask);
-        sigaddset(&mask, SIGCHLD);
-        sigprocmask(SIG_BLOCK, &mask, NULL);
+    if (isBuiltIn == NOT_FOUND) {
+        if (foreground) {
+            put_job_in_foreground(j, 0);
+        } else { 
+            sigset_t mask;
+            sigemptyset (&mask);
+            sigaddset(&mask, SIGCHLD);
+            sigprocmask(SIG_BLOCK, &mask, NULL);
 
-        put_job_in_background(j, 0, RUNNING);
+            put_job_in_background(j, 0, RUNNING);
 
-        sigprocmask(SIG_UNBLOCK, &mask, NULL);
+            sigprocmask(SIG_UNBLOCK, &mask, NULL);
+        }
     }
 }
 
@@ -379,7 +376,6 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
        the terminal, if appropriate.
        This has to be done both by the shell and in the individual
        child processes because of potential race conditions.  */ //TODO: consider race conditions arising here!!
-
 
     pid = getpid();
 
@@ -429,9 +425,9 @@ void put_job_in_foreground (job *j, int cont) {
 
     /* Put the shell back in the foreground.  */
     tcsetpgrp(shell_terminal, shell_pgid);
-
+    // printf("giving back shell new \n");
     /* Restore the shell’s terminal modes.  */
-    tcgetattr(shell_terminal, &shell_tmodes);
+    // tcgetattr(shell_terminal, &shell_tmodes);
     tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
 }
 
@@ -452,28 +448,36 @@ void simple_background_job_setup(background_job *dest, job *org, int status)
 void put_job_in_background(job *j, int cont, int status) { //TODO: check on merge here
 
     /* Add job to the background list with status of running */
-    background_job *copyOfJ = malloc(sizeof(background_job));
 
-    if (!cont) {
-        simple_background_job_setup(copyOfJ, j, status);
-        if (all_background_jobs == NULL) {
-            all_background_jobs = copyOfJ;
-        } else {
-            background_job *cur_job = all_background_jobs;
-            background_job *next_job = all_background_jobs->next_background_job;
-            while (next_job != NULL) {
-                background_job *temp = next_job;
-                next_job = cur_job->next_background_job;
-                cur_job = temp;
+    /* check if job is isn't already in background */
+    // background_job *does_exist_bj;
+
+    // if ((does_exist_bj = get_background_from_pgid(j->pgid)) != NULL) {
+    //     does_exist_bj->status = status;
+    // }
+    // else {
+        if (!cont) {
+            background_job *copyOfJ = malloc(sizeof(background_job));
+            simple_background_job_setup(copyOfJ, j, status);
+            if (all_background_jobs == NULL) {
+                all_background_jobs = copyOfJ;
+            } else {
+                background_job *cur_job = all_background_jobs;
+                background_job *next_job = all_background_jobs->next_background_job;
+                while (next_job != NULL) {
+                    background_job *temp = next_job;
+                    next_job = cur_job->next_background_job;
+                    cur_job = temp;
+                }
+                cur_job->next_background_job = copyOfJ;
             }
-            cur_job->next_background_job = copyOfJ;
         }
-    }
-    else {
-        if (kill(-j->pgid, SIGCONT) < 0) {
-            perror("kill (SIGCONT)");
+        else {
+            if (kill(-j->pgid, SIGCONT) < 0) {
+                perror("kill (SIGCONT)");
+            }
         }
-    }
+    // }
 }
 
 int arrayLength(char **array) {
@@ -487,7 +491,18 @@ int arrayLength(char **array) {
 
 /* Let's have this clean up the job list */
 int exit_builtin(char **args) {
-    free_background_jobs();
+
+    background_job *cur_background_job = all_background_jobs;
+    while (cur_background_job != NULL) {
+        if (kill(-cur_background_job->pgid, SIGKILL) < 0){
+            perror("kill (SIGKILL)");
+        }
+        else {
+            printf("KILLED pgid: %d job: %s \n", cur_background_job->pgid, cur_background_job->job_string);
+        }
+        cur_background_job = cur_background_job->next_background_job;
+    }
+
     EXIT = TRUE;
     return EXIT; //success
 }
@@ -828,6 +843,7 @@ void foreground_helper(background_job *bj) {
 
     /* Send the job a continue signal, if necessary.  */
     tcsetattr(shell_terminal, TCSADRAIN, &bj->termios_modes);
+
     if (kill(-bj->pgid, SIGCONT) < 0)
         perror("kill (SIGCONT)");
 
@@ -838,7 +854,7 @@ void foreground_helper(background_job *bj) {
     tcsetpgrp(shell_terminal, shell_pgid);
 
     /* Restore the shell’s terminal modes.  */
-    tcgetattr(shell_terminal, &shell_tmodes);
+    // tcgetattr(shell_terminal, &shell_tmodes);
     tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
 }
 

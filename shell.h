@@ -68,6 +68,8 @@ typedef struct background_job {
 
 void printoutargs();
 
+background_job *get_background_from_pgid(pid_t pgid);
+
 int lengthOf(char *str);
 
 int arrayLength(char **array);
