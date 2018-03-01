@@ -924,14 +924,6 @@ int foreground_builtin(char** args) {
 
                     foreground_helper(currentJob);
 
-                    sigemptyset(&mask);
-                    sigaddset(&mask, SIGCHLD);
-                    sigprocmask(SIG_BLOCK, &mask, NULL);
-
-                    trim_background_process_list(pid);
-
-                    sigprocmask(SIG_UNBLOCK, &mask, NULL);
-
                     return TRUE;
                 } else {
                     currentJob = currentJob->next_background_job;
@@ -970,15 +962,6 @@ int foreground_builtin(char** args) {
         pid_t pid = currentJob->pgid;
 
         foreground_helper(currentJob);
-
-        sigset_t mask;
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGCHLD);
-        sigprocmask(SIG_BLOCK, &mask, NULL);
-
-        trim_background_process_list(pid);
-
-        sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
         return TRUE;
     }
