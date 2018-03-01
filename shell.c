@@ -543,7 +543,7 @@ void foreground_helper(background_job *bj) {
     if (kill(-bj->pgid, SIGCONT) < 0)
         perror("kill (SIGCONT)");
 
-    printf("%d\n", bj->pgid); //print statement
+    printf("%s\n", bj->job_string); //print statement
 
     /* if the system call is interrupted, wait again */
     waitpid(bj->pgid , &status, WUNTRACED);
