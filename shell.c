@@ -152,16 +152,7 @@ void buildBuiltIns() {
 
 /* Displays error message */
 void printError(char* message) {
-    printf("%s", message);
-}
-
-//TODO: use this function
-/* Frees commands and displays error message */
-void handleError(char* message, char **commands, int numCommands) {
-    printf("%s", message);
-    for(int i=0; i<numCommands; i++) {
-        printf("%s ", commands[i]); //something like "I am sorry, but the input string is invalid"
-    }
+    printf("%s\n", message);
 }
 
 /* Method that takes a command pointer and checks if the command is a background or foreground job.
@@ -175,7 +166,7 @@ void trim_background_process_list(pid_t pid_to_remove) {
     background_job *cur_background_job = all_background_jobs;
     background_job *prev_background_job = NULL;
     while (cur_background_job != NULL) {
-        if (cur_background_job->pgid == pid_to_remove) { //todo: check this code, since I don't think it works correctly...
+        if (cur_background_job->pgid == pid_to_remove) {
             if (prev_background_job == NULL) {
                 background_job *temp = cur_background_job->next_background_job;
                 all_background_jobs = temp;
@@ -341,7 +332,7 @@ void launchJob(job *j, int foreground) {
                     j->pgid = pid;
                 }
 
-                setpgid(pid, j->pgid); //TODO: check process group ids being altered correctly
+                setpgid(pid, j->pgid);
             }
         }
     }
@@ -370,7 +361,7 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
     /* Put the process into the process group and give the process group
        the terminal, if appropriate.
        This has to be done both by the shell and in the individual
-       child processes because of potential race conditions.  */ //TODO: consider race conditions arising here!!
+       child processes because of potential race conditions.  */
 
     pid = getpid();
 
@@ -450,29 +441,27 @@ void put_job_in_background(job *j, int cont, int status) { //TODO: check on merg
     // if ((does_exist_bj = get_background_from_pgid(j->pgid)) != NULL) {
     //     does_exist_bj->status = status;
     // }
-    // else {
-        if (!cont) {
-            background_job *copyOfJ = malloc(sizeof(background_job));
-            simple_background_job_setup(copyOfJ, j, status);
-            if (all_background_jobs == NULL) {
-                all_background_jobs = copyOfJ;
-            } else {
-                background_job *cur_job = all_background_jobs;
-                background_job *next_job = all_background_jobs->next_background_job;
-                while (next_job != NULL) {
-                    background_job *temp = next_job;
-                    next_job = cur_job->next_background_job;
-                    cur_job = temp;
-                }
-                cur_job->next_background_job = copyOfJ;
+
+    if (!cont) {
+        background_job *copyOfJ = malloc(sizeof(background_job));
+        simple_background_job_setup(copyOfJ, j, status);
+        if (all_background_jobs == NULL) {
+            all_background_jobs = copyOfJ;
+        } else {
+            background_job *cur_job = all_background_jobs;
+            background_job *next_job = all_background_jobs->next_background_job;
+            while (next_job != NULL) {
+                background_job *temp = next_job;
+                next_job = cur_job->next_background_job;
+                cur_job = temp;
             }
+            cur_job->next_background_job = copyOfJ;
         }
-        else {
-            if (kill(-j->pgid, SIGCONT) < 0) {
-                perror("kill (SIGCONT)");
-            }
+    } else {
+        if (kill(-j->pgid, SIGCONT) < 0) {
+            perror("kill (SIGCONT)");
         }
-    // }
+    }
 }
 
 int arrayLength(char **array) {
