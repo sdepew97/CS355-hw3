@@ -920,17 +920,8 @@ int foreground_builtin(char** args) {
                 if (currentNode == number) {
                     // put job into the foreground here
                     pid_t pid = currentJob->pgid;
-                    sigset_t mask;
 
                     foreground_helper(currentJob);
-
-                    sigemptyset(&mask);
-                    sigaddset(&mask, SIGCHLD);
-                    sigprocmask(SIG_BLOCK, &mask, NULL);
-
-                    trim_background_process_list(pid);
-
-                    sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
                     return TRUE;
                 } else {
@@ -970,15 +961,6 @@ int foreground_builtin(char** args) {
         pid_t pid = currentJob->pgid;
 
         foreground_helper(currentJob);
-
-        sigset_t mask;
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGCHLD);
-        sigprocmask(SIG_BLOCK, &mask, NULL);
-
-        trim_background_process_list(pid);
-
-        sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
         return TRUE;
     }
