@@ -24,6 +24,11 @@ pid_t shell_pgid; // shell process group
 typedef int (*operation)(char**);
 
 //Structs
+typedef struct trydelete {
+    pid_t pidToDelete;
+    struct trydelete *next;
+} trydelete;
+
 typedef struct builtin {
     char *tag;
     operation function;
@@ -65,6 +70,11 @@ typedef struct background_job {
     char *job_string;
     struct termios termios_modes;
 } background_job;
+
+void try_delete_method();
+void try_delete_free();
+
+void job_suspend_helper(pid_t calling_id);
 
 void printoutargs();
 

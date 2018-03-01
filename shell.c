@@ -9,6 +9,9 @@
 #include <errno.h>
 #include <limits.h>
 
+trydelete trydeleteValue = {-1, NULL};
+trydelete *trydelete1 = &trydeleteValue;
+
 job *all_jobs;
 job *list_of_jobs = NULL;
 background_job *all_background_jobs = NULL;
@@ -43,7 +46,6 @@ int main (int argc, char **argv) {
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
     while (!EXIT) {
-
         perform_parse();
         job *currentJob = all_jobs;
 
@@ -53,12 +55,35 @@ int main (int argc, char **argv) {
             }
             currentJob = currentJob->next_job;
         }
+        try_delete_method();
+        //TODO: fix seg fault that happens here while trying to free memory not allocated try_delete_free();
         free_all_jobs();
     }
 
     /* free any background jobs still in LL before exiting */
     free_background_jobs();
     return EXIT_SUCCESS;
+}
+
+void try_delete_method() {
+    trydelete *value = trydelete1;
+
+    while (value != NULL) {
+        pid_t calling_id = value->pidToDelete;
+        job_suspend_helper(calling_id);
+        value = value->next;
+    }
+}
+
+void try_delete_free() {
+    trydelete *value = trydelete1;
+    trydelete *next = NULL;
+    while(value->pidToDelete != -1) {
+//        printf("hit here, %d\n", value->pidToDelete);
+        next = value->next;
+        free(value);
+        value = next;
+    }
 }
 
 void printoutargs() {
@@ -199,7 +224,7 @@ job *package_job(background_job *cur_job) {
 }
 
 void job_suspend_helper(pid_t calling_id) {
-    /* if job is in background, just update status */ 
+    /* if job is in background, just update status */
     background_job *cur_job = all_background_jobs;
     while (cur_job != NULL) {
         if (cur_job->pgid == calling_id) {
@@ -233,7 +258,11 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
         }
         //else if (siginfo->si_status != 0) {
         else if(siginfo->si_code == CLD_STOPPED) {
-            job_suspend_helper(calling_id);
+//            job_suspend_helper(calling_id);
+            trydelete *newTryDelete = malloc(sizeof(trydelete));
+            newTryDelete->pidToDelete = calling_id;
+            newTryDelete->next = trydelete1;
+            trydelete1 = newTryDelete;
         }
     }
 }
@@ -269,7 +298,6 @@ void removeNode(pid_t pidToRemove) {
         currentJob = currentJob->next_job;
     }
 }
-
 
 /* Passes in the command to check. Returns the index of the built-in command if it’s in the array of
  * built-in commands and -1 if it is not in the array allBuiltIns
