@@ -52,10 +52,8 @@ int main (int argc, char **argv) {
                 launchJob(currentJob, !(currentJob->run_in_background));
             }
             currentJob = currentJob->next_job;
-            // break;
         }
         free_all_jobs();
-        // break;
     }
 
     /* free any background jobs still in LL before exiting */
@@ -209,27 +207,26 @@ job *package_job(background_job *cur_job) {
     return to_return;
 }
 
-void job_suspend_helper(pid_t calling_id, int cont, int status) {
-    /* if jobs isn't already in background, add it*/
-    job *check_foreground = all_jobs;
-    while (check_foreground != NULL) {
-        if (check_foreground->pgid == calling_id) {
-            put_job_in_background(check_foreground, 0, status);
-            return;
-        }
-        check_foreground = check_foreground->next_job;
-    }
+void job_suspend_helper(pid_t calling_id) {
 
     /* if job is in background, just update status */ 
     background_job *cur_job = all_background_jobs;
     while (cur_job != NULL) {
         if (cur_job->pgid == calling_id) {
-            // job *to_background = package_job(cur_job);
-            // put_job_in_background(to_background, 0, status);
             cur_job->status = SUSPENDED;
             return;
         }
         cur_job = cur_job->next_background_job;
+    }
+
+    /* other wise it must be a job being run for a first time */
+    job *check_foreground = all_jobs;
+    while (check_foreground != NULL) {
+        if (check_foreground->pgid == calling_id) {
+            put_job_in_background(check_foreground, 0, SUSPENDED);
+            return;
+        }
+        check_foreground = check_foreground->next_job;
     }
 
 }
@@ -247,7 +244,7 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
         }
         //else if (siginfo->si_status != 0) {
         else if(siginfo->si_code == CLD_STOPPED) {
-            job_suspend_helper(calling_id, 0, SUSPENDED);
+            job_suspend_helper(calling_id);
         }
     }
 }
@@ -928,21 +925,12 @@ int foreground_builtin(char** args) {
 
                 foreground_helper(currentJob);
 
-                sigemptyset(&mask);
-                sigaddset(&mask, SIGCHLD);
-                sigprocmask(SIG_BLOCK, &mask, NULL);
-                printf("here\n ");
-                trim_background_process_list(pid);
-
-                sigprocmask(SIG_UNBLOCK, &mask, NULL);
-
                 return TRUE;
             } else {
                 currentJob = currentJob->next_background_job;
             }
         }
 
-        //node was not found!
         if (currentNode < number) {
             printError("I am sorry, but that job does not exist.\n");
             return FALSE;
@@ -974,15 +962,6 @@ int foreground_builtin(char** args) {
         pid_t pid = currentJob->pgid;
 
         foreground_helper(currentJob);
-
-        sigset_t mask;
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGCHLD);
-        sigprocmask(SIG_BLOCK, &mask, NULL);
-        trim_background_process_list(pid);
-
-        sigprocmask(SIG_UNBLOCK, &mask, NULL);
-
 
         return TRUE;
     }
