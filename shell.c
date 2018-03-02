@@ -473,19 +473,22 @@ void put_job_in_foreground (job *j, int cont) {
     }
 
     /* Wait for it to report.  */
-    if(waitpid (j->pgid, &status, WUNTRACED) == ERROR) {
+    if (waitpid(j->pgid, &status, WUNTRACED) == ERROR) {
         printf("I am sorry, but waitpid failed.\n");
         exit(EXIT_FAILURE);
     }
 
     /* Put the shell back in the foreground.  */
-    if (tcsetpgrp(shell_terminal, shell_pgid)== ERROR) {
-        printf("\"I am sorry, but tcsetpgrp failed.\n");
+    if (tcsetpgrp(shell_terminal, shell_pgid) == ERROR) {
+        printf("I am sorry, but tcsetpgrp failed.\n");
         exit(EXIT_FAILURE);
     }
 
     /* Restore the shell’s terminal modes.  */
-    tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
+    if (tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes) == ERROR) {
+        perror("I am sorry, but tcsetattr failed.\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 /* takes background job and gives it to background job */
@@ -495,6 +498,10 @@ void simple_background_job_setup(background_job *dest, job *org, int status)
     dest->status = status;
     dest->termios_modes = org->termios_modes; // <<< potential source of error here? valgrind and fg seems to be complaing about unitialized bytes
     char *js = malloc(sizeof(char) * lengthOf(org->full_job_string) + 1);
+    if(js == NULL) {
+        perror("I am sorry, but there was an error with malloc.\n");
+        exit(EXIT_FAILURE);
+    }
     strcpy(js, org->full_job_string);
     dest->job_string = js;
     dest->next_background_job = NULL;
@@ -506,6 +513,10 @@ void put_job_in_background(job *j, int cont, int status) {
     /* Add job to the background list with status of running */
     if (!cont) {
         background_job *copyOfJ = malloc(sizeof(background_job));
+        if(copyOfJ == NULL) {
+            perror("I am sorry, but there was an error with malloc.\n");
+            exit(EXIT_FAILURE);
+        }
         simple_background_job_setup(copyOfJ, j, status);
         if (all_background_jobs == NULL) {
             all_background_jobs = copyOfJ;
@@ -520,8 +531,8 @@ void put_job_in_background(job *j, int cont, int status) {
             cur_job->next_background_job = copyOfJ;
         }
     } else {
-        if (kill(-j->pgid, SIGCONT) < 0) {
-            perror("kill (SIGCONT)");
+        if (kill(-j->pgid, SIGCONT) < ZERO) {
+            perror("kill (SIGCONT)\n");
         }
     }
 }
@@ -537,13 +548,12 @@ int arrayLength(char **array) {
 
 /* Let's have this clean up the job list */
 int exit_builtin(char **args) {
-
     background_job *cur_background_job = all_background_jobs;
+
     while (cur_background_job != NULL) {
-        if (kill(-cur_background_job->pgid, SIGKILL) < 0){
+        if (kill(-cur_background_job->pgid, SIGKILL) < ZERO) {
             perror("kill (SIGKILL)");
-        }
-        else {
+        } else {
             printf("KILLED pgid: %d job: %s \n", cur_background_job->pgid, cur_background_job->job_string);
         }
         cur_background_job = cur_background_job->next_background_job;
