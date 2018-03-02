@@ -368,23 +368,23 @@ void launchJob(job *j, int foreground) {
             sigset_t mask;
 
             if (sigemptyset(&mask) == ERROR) {
-                printf("I am sorry, but sigemptyset failed.\n");
+                perror("I am sorry, but sigemptyset failed.\n");
                 exit(EXIT_FAILURE);
             }
 
             if (sigaddset(&mask, SIGCHLD) == ERROR) {
-                printf("I am sorry, but sigaddset failed.\n");
+                perror("I am sorry, but sigaddset failed.\n");
                 exit(EXIT_FAILURE);
             }
             if (sigprocmask(SIG_BLOCK, &mask, NULL) == ERROR) {
-                printf("I am sorry, but sigprocmask failed.\n");
+                perror("I am sorry, but sigprocmask failed.\n");
                 exit(EXIT_FAILURE);
             }
 
             put_job_in_background(j, ZERO, RUNNING);
 
             if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == ERROR) {
-                printf("I am sorry, but sigprocmask failed.\n");
+                perror("I am sorry, but sigprocmask failed.\n");
                 exit(EXIT_FAILURE);
             }
         }
@@ -474,7 +474,7 @@ void put_job_in_foreground (job *j, int cont) {
 
     /* Wait for it to report.  */
     if (waitpid(j->pgid, &status, WUNTRACED) == ERROR) {
-        printf("I am sorry, but waitpid failed.\n");
+        perror("I am sorry, but waitpid failed.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -613,22 +613,30 @@ void foreground_helper(background_job *bj) {
         exit(EXIT_FAILURE);
     }
 
-    if (kill(-bj->pgid, SIGCONT) < 0)
+    if (kill(-bj->pgid, SIGCONT) < 0) {
         perror("kill (SIGCONT)");
+        exit(EXIT_FAILURE);
+    }
 
     printf("%s\n", bj->job_string); //print statement
 
     /* if the system call is interrupted, wait again */
-    waitpid(bj->pgid , &status, WUNTRACED);
+    if (waitpid(bj->pgid, &status, WUNTRACED) == ERROR) {
+        perror("I am sorry, but waitpid failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* Put the shell back in the foreground.  */
     if (tcsetpgrp(shell_terminal, shell_pgid) == ERROR) {
-        printf("\"I am sorry, but tcsetpgrp failed.\n");
+        perror("\"I am sorry, but tcsetpgrp failed.\n");
         exit(EXIT_FAILURE);
     }
 
     /* Restore the shell’s terminal modes.  */
-    tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
+    if (tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes) == ERROR) {
+        perror("I am sorry, but tcsetattr failed.\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 /* Method to take a job id and send a SIGTERM to terminate the process.*/
@@ -647,9 +655,9 @@ int kill_builtin(char **args) {
         //invalid arguments
         printError("I am sorry, but you have passed an invalid number of arguments to kill.\n");
         return FALSE;
-    } else if (argsLength == maxElements && args[pidLocation][0] == '%') {
-        if (strcmp(args[flagLocation],
-                   flag) == 0) { //check that -9 flag was input correctly, otherwise try sending kill with pid
+    } else if (argsLength == maxElements && args[pidLocation][ZERO] == '%') {
+        if (strcmp(args[flagLocation], flag) ==
+            ZERO) { //check that -9 flag was input correctly, otherwise try sending kill with pid
             //(error checking gotten from stack overflow)
             const char *nptr = args[pidLocation] + pidLocationNoFlag;  /* string to read as a number      */
             char *endptr = NULL;                            /* pointer to additional chars  */
@@ -675,10 +683,10 @@ int kill_builtin(char **args) {
             } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
                 printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
                 return FALSE;
-            } else if (errno != 0 && number == 0) {
+            } else if (errno != ZERO && number == ZERO) {
                 printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
                 return FALSE;
-            } else if (errno == 0 && nptr && *endptr != 0) {
+            } else if (errno == ZERO && nptr && *endptr != ZERO) {
                 printf(" number : %lld    invalid  (since additional characters remain)\n", number);
                 return FALSE;
             }
@@ -698,31 +706,45 @@ int kill_builtin(char **args) {
             }
 
             //node was not found!
-            if (currentNode < number || number <= 0) {
+            if (currentNode < number || number <= ZERO) {
                 printError("I am sorry, but that job does not exist.\n");
                 return FALSE;
             } else {
                 pid_t pid = currentJob->pgid;
                 printf("%d pid\n", pid);
-                if (kill(pid, SIGKILL) == -1) {
-                    printError("I am sorry, an error occurred with kill.\n");
+                if (kill(pid, SIGKILL) == ERROR) {
+                    perror("I am sorry, an error occurred with kill.\n");
                     return FALSE; //error occurred
                 } else {
                     /* sig proc mask this */
                     sigset_t mask;
-                    sigemptyset(&mask);
-                    sigaddset(&mask, SIGCHLD);
-                    sigprocmask(SIG_BLOCK, &mask, NULL);
+
+                    if (sigemptyset(&mask) == ERROR) {
+                        perror("I am sorry, but sigemptyset failed.\n");
+                        exit(EXIT_FAILURE);
+                    }
+
+                    if (sigaddset(&mask, SIGCHLD) == ERROR) {
+                        perror("I am sorry, but sigaddset failed.\n");
+                        exit(EXIT_FAILURE);
+                    }
+                    if (sigprocmask(SIG_BLOCK, &mask, NULL) == ERROR) {
+                        perror("I am sorry, but sigprocmask failed.\n");
+                        exit(EXIT_FAILURE);
+                    }
 
                     trim_background_process_list(pid);
 
-                    sigprocmask(SIG_UNBLOCK, &mask, NULL);
+                    if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == ERROR) {
+                        perror("I am sorry, but sigprocmask failed.\n");
+                        exit(EXIT_FAILURE);
+                    }
                     return TRUE;
                 }
             }
         }
     } else { //we have no flags and only kill with a pid
-        if (args[pidLocationNoFlag][0] == '%') {
+        if (args[pidLocationNoFlag][ZERO] == '%') {
             //PID is second argument
             //(error checking gotten from stack overflow)
             const char *nptr =
