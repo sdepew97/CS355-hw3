@@ -1,0 +1,36 @@
+Expanded README
+Your README must explain any particular design decisions or features of your shell. It should contain at least three parts:
+• An introduction to the basic structure of your shell
+• A list of which features are fully implemented, partially implemented and not imple-
+mented
+• A discussion of how you tested your shell for robustness and correctness
+You should get used to providing your software with an overview document which will make granting credits
+easier in cases where you are unable get things working completely but have the bones right.
+
+
+
+Testing Plan:
+At the beginning of the project, Dylan and I made a testing plan. We decided that we would test for the following.
+
+* Valgrind for memory leaks
+* Test the parser
+* Ensure that the corner cases are covered
+* Potential corner cases:
+    Starting with ‘&’ or ‘;’
+    Complete and total gibberish
+* Test build-in commands (make sure functionality matches that of Linux shell)
+    Jobs
+    Exit
+    Kill
+    Fg
+    Bg
+* Signal handling testing (make sure that there are no memory leaks in the shell when these are handled)
+    CTRL-C
+    CTRL-Z
+    CTRL-D
+    Any other keyboard signals
+
+In addition to this testing, we ran the commands, such as bg and fg, that took in ints with 0 and negative numbers.
+Also, we ran commands in succession to see how this behavior would change or if we would end up in deadlock/with race conditions.
+We also went between all possible background, foreground, and CTRL-Z routes and it appeared to function correctly with all expected
+behavior occurring as planned.
