@@ -1,37 +1,45 @@
-Expanded README
-Your README must explain any particular design decisions or features of your shell. It should contain at least three parts:
-• An introduction to the basic structure of your shell
+--- Coders ---
+
+Dylan Slack and Sarah Depew
+
+--- How to Compile ---
+
+There is a Makefile, so just type make to make and clean.
+
+--- How to Run ---
+
+Make with the makefile and then run the executable like normal. ./shell for the shell.
+
+--- Introduction to Structure ---
 
 Our shell works by first initializing the shell and building the built-in functions. The built-ins are simply strings mapped
 to methods that can be run. Then, in a main loop, we parse, run all jobs that were in the input, and launch each job.
 
 From there, we go through each process of the job. We check if the process is built in or not. If it is, then we execute a
-built in command with the associated helpers. If it is not built in, we fork off a process to run the process and its arguments through execvp.
+built in command with the associated helpers. If it is not built in, we fork off a process to run the process and its
+arguments through execvp.
 
 Finally, we free all jobs and, if we are exiting, free all background jobs, kill them, and exit the program.
 
-• A list of which features are fully implemented, partially implemented and not imple-
-mented
+--- List of Features Implemented ---
 
 We implemented all features. We did not do the extra credit.
 
-* Known bugs
+--- Known bugs/Notes ----
 
 1) We know that there are bugs in the readline function that cause memory leaks
 2) Sometimes in long lists of jobs we end up loosing a sigchild and a job doesn't get marked as suspended
 (only appearance and not actual functionality of shell)
-3) ....
+3) We did not handle a CLD_TRAPPED (child trapped) code in our SIGCHLD handler, since we were unsure as to how this would occur.
+We were not sure if this were pertinent, but wanted to record the information, here.
+4) Unlike the linux shell, our shell ignores odd input like '&' or ';' at the start of a line 
 
-• A discussion of how you tested your shell for robustness and correctness
-You should get used to providing your software with an overview document which will make granting credits
-easier in cases where you are unable get things working completely but have the bones right.
-
-Testing Plan:
-At the beginning of the project, Dylan and I made a testing plan. We decided that we would test for the following.
+--- Testing Plan ---
+At the beginning of the project, we made a testing plan. We decided that we would test for the following.
 
 * Valgrind for memory leaks
-* Test the parser
-* Ensure that the corner cases are covered
+* Test the parser for correct output
+* Ensure that the corner cases are covered (ex. negative numbers, gibberish, zero, end of the list)
 * Potential corner cases:
     Starting with ‘&’ or ‘;’
     Complete and total gibberish
@@ -50,4 +58,4 @@ At the beginning of the project, Dylan and I made a testing plan. We decided tha
 In addition to this testing, we ran the commands, such as bg and fg, that took in ints with 0 and negative numbers.
 Also, we ran commands in succession to see how this behavior would change or if we would end up in deadlock/with race conditions.
 We also went between all possible background, foreground, and CTRL-Z routes and it appeared to function correctly with all expected
-behavior occurring as planned.
+behavior occurring as planned. Dylan ran a lot of off the cuff test cases, and the behavior appeared correct in all situations.
