@@ -66,8 +66,6 @@ typedef struct background_job {
     struct termios termios_modes;
 } background_job;
 
-void printoutargs();
-
 background_job *get_background_from_pgid(pid_t pgid);
 
 int lengthOf(char *str);

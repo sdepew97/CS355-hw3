@@ -10,7 +10,6 @@
 #include <limits.h>
 
 job *all_jobs;
-job *list_of_jobs = NULL;
 background_job *all_background_jobs = NULL;
 pid_t shell_pgid;
 struct termios shell_tmodes;
@@ -38,10 +37,13 @@ int main (int argc, char **argv) {
     pid_t pid;
     char **commands = NULL;
     char *cmd = NULL;
-
     process p;
+
+    //setup
     initializeShell();
-    buildBuiltIns(); //store all builtins in built in array
+    buildBuiltIns();
+
+    //main loop
     while (!EXIT) {
 
         perform_parse();
@@ -53,29 +55,13 @@ int main (int argc, char **argv) {
             }
             currentJob = currentJob->next_job;
         }
+
         free_all_jobs();
     }
 
-    /* free any background jobs still in LL before exiting */
+    /* Free any background jobs still in LL before exiting */
     free_background_jobs();
     return EXIT_SUCCESS;
-}
-
-void printoutargs() {
-    job *temp_job;
-    temp_job = all_jobs;
-    while (temp_job != NULL) {
-        process *temp_proc = temp_job->first_process;
-        while (temp_proc != NULL) {
-            int i = 0;
-            while ((temp_proc->args)[i] != NULL) {
-                printf("%s \n", (temp_proc->args)[i]);
-                i++;
-            }
-            temp_proc = temp_proc->next_process;
-        }
-        temp_job = temp_job->next_job;
-    }
 }
 
 /* Make sure the shell is running interactively as the foreground job
@@ -87,45 +73,85 @@ void initializeShell() {
 
     if (shell_is_interactive) {
         /* Loop until we are in the foreground.  */
-        while (tcgetpgrp(shell_terminal) != (shell_pgid = getpgrp()))
-            kill(-shell_pgid, SIGTTIN);
+        pid_t pgrp;
+        while ((pgrp = tcgetpgrp(shell_terminal)) != ERROR && pgrp != (shell_pgid = getpgrp()))
+            if (kill(-shell_pgid, SIGTTIN) >= FAILURE) {
+                printError("I am sorry, but kill failed.\n");
+                exit(EXIT_FAILURE);
+            }
 
         /* Ignore interactive and job-control signals.  */
-        signal(SIGINT, SIG_IGN);
-        signal(SIGTERM, SIG_IGN);
-        signal(SIGQUIT, SIG_IGN);
-        signal(SIGTTIN, SIG_IGN);
-        signal(SIGTTOU, SIG_IGN);
-        signal(SIGTSTP, SIG_IGN);
+        if (signal(SIGINT, SIG_IGN) == SIG_ERR) {
+            printError("I am sorry, but signal failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (signal(SIGTERM, SIG_IGN) == SIG_ERR) {
+            printError("I am sorry, but signal failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (signal(SIGQUIT, SIG_IGN) == SIG_ERR) {
+            printError("I am sorry, but signal failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (signal(SIGTTIN, SIG_IGN) == SIG_ERR) {
+            printError("I am sorry, but signal failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (signal(SIGTTOU, SIG_IGN) == SIG_ERR) {
+            printError("I am sorry, but signal failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (signal(SIGTSTP, SIG_IGN) == SIG_ERR) {
+            printError("I am sorry, but signal failed.\n");
+            exit(EXIT_FAILURE);
+        }
 
         //register a signal handler for SIGCHILD
         /* Handle Signal */
         struct sigaction childreturn;
-        memset(&childreturn, 0, sizeof(childreturn));
+        memset(&childreturn, ZERO,
+               sizeof(childreturn)); //there is "no return value is reserved to indicate an error", so we were unable to error check here
         childreturn.sa_sigaction = &childReturning;
         sigset_t mask;
-        sigemptyset (&mask);
-        sigaddset(&mask, SIGCHLD);
+        if (sigemptyset(&mask) == ERROR) {
+            printf("I am sorry, but sigemptyset failed.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if (sigaddset(&mask, SIGCHLD) == ERROR) {
+            printf("I am sorry, but sigaddset failed.\n");
+            exit(EXIT_FAILURE);
+        }
+
         childreturn.sa_mask = mask;
         /* add sig set for sig child and sigtstp */
         childreturn.sa_flags = SA_SIGINFO | SA_RESTART;
-        if (sigaction(SIGCHLD, &childreturn, NULL) < 0) {
+        if (sigaction(SIGCHLD, &childreturn, NULL) < ZERO) {
             printError("Error with sigaction for child.\n");
-            return;
+            exit(EXIT_FAILURE);
         }
 
         /* Put ourselves in our own process group.  */
         shell_pgid = getpid();
-        if (setpgid(shell_pgid, shell_pgid) < 0) {
+        if (setpgid(shell_pgid, shell_pgid) < ZERO) {
             perror("Couldn't put the shell in its own process group.\n");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
         /* Grab control of the terminal.  */
-        tcsetpgrp(shell_terminal, shell_pgid);
+        if (tcsetpgrp(shell_terminal, shell_pgid) == ERROR) {
+            printf("\"I am sorry, but tcsetpgrp failed.\n");
+            exit(EXIT_FAILURE);
+        }
 
         /* Save default terminal attributes for shell.  */
-        tcgetattr(shell_terminal, &shell_tmodes);
+        if (tcgetattr(shell_terminal, &shell_tmodes) == ERROR) {
+            printf("I am sorry, but tcgetattr failed.\n");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        printError("I am sorry, there was an error with initializing the shell.\n");
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -133,16 +159,16 @@ void initializeShell() {
 void buildBuiltIns() {
     char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS] = {exit_string, kill_string, jobs_string, fg_string, bg_string};
 
-    for (int i = 0; i < NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
+    for (int i = ZERO; i < NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
         allBuiltIns[i].tag = builtInTags[i];
 
-        if (i == 0) {
+        if (i == ZERO) {
             allBuiltIns[i].function = exit_builtin;
-        } else if (i == 1) {
+        } else if (i == ONE) {
             allBuiltIns[i].function = kill_builtin;
-        } else if (i == 2) {
+        } else if (i == TWO) {
             allBuiltIns[i].function = jobs_builtin;
-        } else if (i == 3) {
+        } else if (i == THREE) {
             allBuiltIns[i].function = foreground_builtin;
         } else {
             allBuiltIns[i].function = background_builtin;
@@ -173,15 +199,13 @@ void trim_background_process_list(pid_t pid_to_remove) {
                 free(cur_background_job->job_string);
                 free(cur_background_job);
                 return;
-            }
-            else {
+            } else {
                 prev_background_job->next_background_job = cur_background_job->next_background_job;
                 free(cur_background_job->job_string);
                 free(cur_background_job);
                 return;
             }
-        }
-        else{
+        } else {
             prev_background_job = cur_background_job;
             cur_background_job = cur_background_job->next_background_job;
         }
@@ -190,16 +214,23 @@ void trim_background_process_list(pid_t pid_to_remove) {
 
 job *package_job(background_job *cur_job) {
     job *to_return = malloc(sizeof(job));
-
+    if (to_return == NULL) {
+        printf("I am sorry, but there was an error with malloc.\n");
+        return NULL;
+    }
     to_return->pgid = cur_job->pgid;
     to_return->status = cur_job->status;
-    to_return->full_job_string = malloc(lengthOf(cur_job->job_string) + 1);
+    to_return->full_job_string = malloc(lengthOf(cur_job->job_string) + ONE);
+    if (to_return->full_job_string == NULL) {
+        printf("I am sorry, but there was an error with malloc.\n");
+        return NULL;
+    }
     strcpy(to_return->full_job_string, cur_job->job_string);
     return to_return;
 }
 
 void job_suspend_helper(pid_t calling_id) {
-    /* if job is in background, just update status */ 
+    /* if job is in background, just update status */
     background_job *cur_job = all_background_jobs;
     while (cur_job != NULL) {
         if (cur_job->pgid == calling_id) {
@@ -213,26 +244,23 @@ void job_suspend_helper(pid_t calling_id) {
     job *check_foreground = all_jobs;
     while (check_foreground != NULL) {
         if (check_foreground->pgid == calling_id) {
-            put_job_in_background(check_foreground, 0, SUSPENDED);
+            put_job_in_background(check_foreground, ZERO, SUSPENDED);
             return;
         }
         check_foreground = check_foreground->next_job;
     }
 }
 
-/* child process has terminated and so we need to remove the process from the linked list (by pid) */
+/* Child process has terminated and so we need to remove the process from the linked list (by pid) */
 void childReturning(int sig, siginfo_t *siginfo, void *context) {
     int signum = siginfo->si_signo;
     pid_t calling_id = siginfo->si_pid;
 
     if (signum == SIGCHLD) {
-        //TODO: finish covering all SIGCHLD codes and ensure this is working correctly...
         //in the case of the child being killed, remove it from the list of jobs
-        if(siginfo->si_code == CLD_KILLED || siginfo->si_code == CLD_DUMPED || siginfo->si_code == CLD_EXITED) {
-            trim_background_process_list(calling_id); //it has been killed and should be removed from the list of processes for job
-        }
-        //else if (siginfo->si_status != 0) {
-        else if(siginfo->si_code == CLD_STOPPED) {
+        if (siginfo->si_code == CLD_KILLED || siginfo->si_code == CLD_DUMPED || siginfo->si_code == CLD_EXITED) {
+            trim_background_process_list(calling_id);
+        } else if (siginfo->si_code == CLD_STOPPED) {
             job_suspend_helper(calling_id);
         }
     }
@@ -270,13 +298,12 @@ void removeNode(pid_t pidToRemove) {
     }
 }
 
-
 /* Passes in the command to check. Returns the index of the built-in command if it’s in the array of
  * built-in commands and -1 if it is not in the array allBuiltIns
  */
 int isBuiltInCommand(process cmd) {
-    for(int i=0; i<NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
-        if(process_equals(cmd, allBuiltIns[i])) {
+    for (int i = ZERO; i < NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
+        if (process_equals(cmd, allBuiltIns[i])) {
             return i; //return index of command
         }
     }
@@ -285,8 +312,8 @@ int isBuiltInCommand(process cmd) {
 
 int process_equals(process process1, builtin builtin1) {
     /* problem occurring with white space args -- temporary fix, need to make sure parser doesn't give back whitespace commands */
-    if (process1.args[0] == NULL) { return FALSE; }
-    int compare_value = strcmp(process1.args[0], builtin1.tag);
+    if (process1.args[ZERO] == NULL) { return FALSE; }
+    int compare_value = strcmp(process1.args[ZERO], builtin1.tag);
     if (compare_value == FALSE) {
         return TRUE;
     } else {
@@ -294,7 +321,8 @@ int process_equals(process process1, builtin builtin1) {
     }
 }
 
-/* Passes in the built-in command to be executed along with the index of the command in the allBuiltIns array. This method returns true upon success and false upon failure/error. */
+/* Passes in the built-in command to be executed along with the index of the command in the allBuiltIns array.
+ * This method returns true upon success and false upon failure/error. */
 int executeBuiltInCommand(process *process1, int index) {
     //execute built in (testing...)
     return (*(allBuiltIns[index].function))(process1->args);
@@ -309,18 +337,15 @@ void launchJob(job *j, int foreground) {
 
         //run as a built-in command
         if (isBuiltIn != NOT_FOUND) {
-            //printf("built in");
             executeBuiltInCommand(p, isBuiltIn);
-        }
-            //run through execvp
-        else {
+        } else {
             /* Fork the child processes.  */
             pid = fork();
 
-            if (pid == 0) {
+            if (pid == ZERO) {
                 /* This is the child process.  */
                 launchProcess(p, j->pgid, j->stdin, j->stdout, j->stderr, foreground);
-            } else if (pid < 0) {
+            } else if (pid < ZERO) {
                 /* The fork failed.  */
                 perror("fork");
                 exit(EXIT_FAILURE);
@@ -332,7 +357,10 @@ void launchJob(job *j, int foreground) {
                     j->pgid = pid;
                 }
 
-                setpgid(pid, j->pgid);
+                if (setpgid(pid, j->pgid) < ZERO) {
+                    perror("I am sorry, but there was an error with setpgid.\n");
+                    exit(EXIT_FAILURE);
+                }
             }
         }
     }
@@ -386,8 +414,6 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
     signal(SIGTTOU, SIG_DFL);
     signal(SIGCHLD, SIG_DFL);
 
-
-
     /* Exec the new process.  Make sure we exit.  */
     execvp(p->args[0], p->args);
     fprintf(stderr, "Error: %s: command not found\n", p->args[0]);
@@ -431,17 +457,8 @@ void simple_background_job_setup(background_job *dest, job *org, int status)
 
 /* Put a job in the background.  If the cont argument is true, send
    the process group a SIGCONT signal to wake it up.  */
-void put_job_in_background(job *j, int cont, int status) { //TODO: check on merge here
-
+void put_job_in_background(job *j, int cont, int status) {
     /* Add job to the background list with status of running */
-
-    /* check if job is isn't already in background */
-    // background_job *does_exist_bj;
-
-    // if ((does_exist_bj = get_background_from_pgid(j->pgid)) != NULL) {
-    //     does_exist_bj->status = status;
-    // }
-
     if (!cont) {
         background_job *copyOfJ = malloc(sizeof(background_job));
         simple_background_job_setup(copyOfJ, j, status);

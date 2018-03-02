@@ -11,6 +11,12 @@
 #define TRUE 1
 #define FALSE 0
 #define ERROR -1
+#define FAILURE 1
+#define ZERO 0
+#define ONE 1
+#define TWO 2
+#define THREE 3
+#define FOUR 4
 
 #endif
 #endif //HW3_BOOLEAN_H
