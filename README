@@ -1,13 +1,30 @@
 Expanded README
 Your README must explain any particular design decisions or features of your shell. It should contain at least three parts:
 • An introduction to the basic structure of your shell
+
+Our shell works by first initializing the shell and building the built-in functions. The built-ins are simply strings mapped
+to methods that can be run. Then, in a main loop, we parse, run all jobs that were in the input, and launch each job.
+
+From there, we go through each process of the job. We check if the process is built in or not. If it is, then we execute a
+built in command with the associated helpers. If it is not built in, we fork off a process to run the process and its arguments through execvp.
+
+Finally, we free all jobs and, if we are exiting, free all background jobs, kill them, and exit the program.
+
 • A list of which features are fully implemented, partially implemented and not imple-
 mented
+
+We implemented all features. We did not do the extra credit.
+
+* Known bugs
+
+1) We know that there are bugs in the readline function that cause memory leaks
+2) Sometimes in long lists of jobs we end up loosing a sigchild and a job doesn't get marked as suspended
+(only appearance and not actual functionality of shell)
+3) ....
+
 • A discussion of how you tested your shell for robustness and correctness
 You should get used to providing your software with an overview document which will make granting credits
 easier in cases where you are unable get things working completely but have the bones right.
-
-
 
 Testing Plan:
 At the beginning of the project, Dylan and I made a testing plan. We decided that we would test for the following.

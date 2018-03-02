@@ -1,13 +1,1 @@
 Known Bugs:
-1) Bug with SEGFAULT when you run exit sometimes (and not other times...haven't been able to catch it with gdb, yet!)
-2) issue with strlen with parsing? got some funny errors with ls & ; cd? (wonder if there is an issue with null termination)
-3) potential concurrency issues, since SIGCHLD is not yet implemented at all...
-4) segfault in split whitespace
-5) we know that jobs sometime
-
-sometimes we go through and flag jobs...in long lists of jobs we end up loosing a sigchild and a job doesn't get marked as suspended (only appearance and not acutal functionality of shell)
-
-To Be Done:
-1) Concurrency
-2) SIGCHLD handler
-3) CTRL-Z functionality
