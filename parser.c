@@ -185,6 +185,7 @@ int perform_parse()
 		cur_job->stdout = STDOUT_FILENO;
 		cur_job->stderr = STDERR_FILENO;
 		cur_job->pass = FALSE;
+		cur_job->suspend_this_job = FALSE;
 
 		/* Unfortunately, our parsing will create whitespace token jobs
 		 * because we split on deliminators and then white space */ 

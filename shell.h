@@ -55,6 +55,7 @@ typedef struct job {
     char **args;
     int stderr;
     int run_in_background;
+    int suspend_this_job; 
     struct job *next_job;
 } job;
 

@@ -53,6 +53,15 @@ int main (int argc, char **argv) {
             }
             currentJob = currentJob->next_job;
         }
+
+        job *to_suspend = all_jobs;
+        while (to_suspend != NULL) {
+            if (to_suspend->suspend_this_job) {
+                put_job_in_background(to_suspend, 0, SUSPENDED);
+            }
+            to_suspend = to_suspend->next_job;
+        }
+
         free_all_jobs();
     }
 
@@ -222,7 +231,8 @@ void job_suspend_helper(pid_t calling_id) {
     job *check_foreground = all_jobs;
     while (check_foreground != NULL) {
         if (check_foreground->pgid == calling_id) {
-            put_job_in_background(check_foreground, 0, SUSPENDED);
+            // put_job_in_background(check_foreground, 0, SUSPENDED);
+            check_foreground->suspend_this_job = TRUE;
             return;
         }
         check_foreground = check_foreground->next_job;
@@ -238,9 +248,8 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
         //TODO: finish covering all SIGCHLD codes and ensure this is working correctly...
         //in the case of the child being killed, remove it from the list of jobs
         if(siginfo->si_code == CLD_KILLED || siginfo->si_code == CLD_DUMPED || siginfo->si_code == CLD_EXITED) {
-            trim_background_process_list(calling_id); //it has been killed and should be removed from the list of processes for job
+            trim_background_process_list(calling_id); 
         }
-        //else if (siginfo->si_status != 0) {
         else if(siginfo->si_code == CLD_STOPPED) {
             job_suspend_helper(calling_id);
         }
@@ -417,6 +426,10 @@ void put_job_in_foreground (job *j, int cont) {
 
     /* Wait for it to report.  */
     waitpid (j->pgid, &status, WUNTRACED);
+    if (WIFSTOPPED(status))
+    {
+        job_suspend_helper(j->pgid);
+    }
 
     /* Put the shell back in the foreground.  */
     tcsetpgrp(shell_terminal, shell_pgid);
@@ -438,41 +451,31 @@ void simple_background_job_setup(background_job *dest, job *org, int status)
     dest->next_background_job = NULL;
 }
 
-/* Put a job in the background.  If the cont argument is true, send
+/* Put a job in the background initially.  If the cont argument is true, send
    the process group a SIGCONT signal to wake it up.  */
 void put_job_in_background(job *j, int cont, int status) { //TODO: check on merge here
-
     /* Add job to the background list with status of running */
-
-    /* check if job is isn't already in background */
-    // background_job *does_exist_bj;
-
-    // if ((does_exist_bj = get_background_from_pgid(j->pgid)) != NULL) {
-    //     does_exist_bj->status = status;
-    // }
-    // else {
-        if (!cont) {
-            background_job *copyOfJ = malloc(sizeof(background_job));
-            simple_background_job_setup(copyOfJ, j, status);
-            if (all_background_jobs == NULL) {
-                all_background_jobs = copyOfJ;
-            } else {
-                background_job *cur_job = all_background_jobs;
-                background_job *next_job = all_background_jobs->next_background_job;
-                while (next_job != NULL) {
-                    background_job *temp = next_job;
-                    next_job = cur_job->next_background_job;
-                    cur_job = temp;
-                }
-                cur_job->next_background_job = copyOfJ;
+    if (!cont) {
+        background_job *copyOfJ = malloc(sizeof(background_job));
+        simple_background_job_setup(copyOfJ, j, status);
+        if (all_background_jobs == NULL) {
+            all_background_jobs = copyOfJ;
+        } else {
+            background_job *cur_job = all_background_jobs;
+            background_job *next_job = all_background_jobs->next_background_job;
+            while (next_job != NULL) {
+                background_job *temp = next_job;
+                next_job = cur_job->next_background_job;
+                cur_job = temp;
             }
+            cur_job->next_background_job = copyOfJ;
         }
-        else {
-            if (kill(-j->pgid, SIGCONT) < 0) {
-                perror("kill (SIGCONT)");
-            }
+    }
+    else {
+        if (kill(-j->pgid, SIGCONT) < 0) {
+            perror("kill (SIGCONT)");
         }
-    // }
+    }
 }
 
 int arrayLength(char **array) {
