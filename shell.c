@@ -533,6 +533,7 @@ void put_job_in_background(job *j, int cont, int status) {
     } else {
         if (kill(-j->pgid, SIGCONT) < ZERO) {
             perror("kill (SIGCONT)\n");
+            exit(EXIT_FAILURE);
         }
     }
 }
@@ -553,6 +554,7 @@ int exit_builtin(char **args) {
     while (cur_background_job != NULL) {
         if (kill(-cur_background_job->pgid, SIGKILL) < ZERO) {
             perror("kill (SIGKILL)");
+            exit(EXIT_FAILURE);
         } else {
             printf("KILLED pgid: %d job: %s \n", cur_background_job->pgid, cur_background_job->job_string);
         }
@@ -564,14 +566,15 @@ int exit_builtin(char **args) {
 }
 
 void background_built_in_helper(background_job *bj, int cont, int status) {
-    if (kill(-bj->pgid, SIGCONT) < 0) {
+    if (kill(-bj->pgid, SIGCONT) < ZERO) {
         perror("kill (SIGCONT)");
+        exit(EXIT_FAILURE);
     }
 
     background_job *current_job = all_background_jobs;
     int index = 0;
     while (current_job != NULL) {
-        index ++;
+        index++;
         if (current_job->pgid == bj->pgid) {
             current_job->status = RUNNING;
             printf("[%d]\t\t%s\n", index, bj->job_string);
@@ -595,17 +598,20 @@ void foreground_helper(background_job *bj) {
     int status;
     /* Put the job into the foreground.  */
     if (tcsetpgrp(shell_terminal, bj->pgid) == ERROR) {
-        printf("\"I am sorry, but tcsetpgrp failed.\n");
+        perror("\"I am sorry, but tcsetpgrp failed.\n");
         exit(EXIT_FAILURE);
     }
 
     if (tcgetattr(shell_terminal, &bj->termios_modes) == ERROR) {
-        printf("I am sorry, but tcgetattr failed.\n");
+        perror("I am sorry, but tcgetattr failed.\n");
         exit(EXIT_FAILURE);
     }
 
     /* Send the job a continue signal, if necessary.  */
-    tcsetattr(shell_terminal, TCSADRAIN, &bj->termios_modes);
+    if (tcsetattr(shell_terminal, TCSADRAIN, &bj->termios_modes) == ERROR) {
+        perror("I am sorry, but tcsetattr failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
     if (kill(-bj->pgid, SIGCONT) < 0)
         perror("kill (SIGCONT)");
