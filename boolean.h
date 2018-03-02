@@ -17,6 +17,7 @@
 #define TWO 2
 #define THREE 3
 #define FOUR 4
+#define CONTINUE 1
 
 #endif
 #endif //HW3_BOOLEAN_H

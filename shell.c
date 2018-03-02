@@ -403,30 +403,54 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
 
     pid = getpid();
 
-    if (pgid == 0) {
+    if (pgid == ZERO) {
         pgid = pid;
     }
 
-    setpgid(pid, pgid);
+    if (setpgid(pid, pgid) < ZERO) {
+        perror("Couldn't put the shell in its own process group.\n");
+        exit(EXIT_FAILURE);
+    }
 
     if (foreground) {
-        if (tcsetpgrp(shell_terminal, pgid) < 0) {
+        if (tcsetpgrp(shell_terminal, pgid) < ZERO) {
             perror("tcsetpgrp");
             exit(EXIT_FAILURE);
         }
     }
 
     /* Set the handling for job control signals back to the default.  */
-    signal(SIGINT, SIG_DFL);
-    signal(SIGQUIT, SIG_DFL);
-    signal(SIGTSTP, SIG_DFL);
-    signal(SIGTTIN, SIG_DFL);
-    signal(SIGTTOU, SIG_DFL);
-    signal(SIGCHLD, SIG_DFL);
+    if (signal(SIGINT, SIG_DFL) == SIG_ERR) {
+        printError("I am sorry, but signal failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (signal(SIGQUIT, SIG_DFL) == SIG_ERR) {
+        printError("I am sorry, but signal failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (signal(SIGTSTP, SIG_DFL) == SIG_ERR) {
+        printError("I am sorry, but signal failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (signal(SIGTTIN, SIG_DFL) == SIG_ERR) {
+        printError("I am sorry, but signal failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (signal(SIGTTOU, SIG_DFL) == SIG_ERR) {
+        printError("I am sorry, but signal failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (signal(SIGCHLD, SIG_DFL) == SIG_ERR) {
+        printError("I am sorry, but signal failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* Exec the new process.  Make sure we exit.  */
-    execvp(p->args[0], p->args);
-    fprintf(stderr, "Error: %s: command not found\n", p->args[0]);
+    if (execvp(p->args[ZERO], p->args) == ERROR) {
+        printError("I am sorry, but there was an error with execvp.\n");
+        exit(EXIT_FAILURE);
+    }
+    fprintf(stderr, "Error: %s: command not found\n", p->args[ZERO]);
     free_all_jobs();
     exit(TRUE);
 }
@@ -438,18 +462,29 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
 void put_job_in_foreground (job *j, int cont) {
     int status;
     /* Put the job into the foreground.  */
-    tcsetpgrp(shell_terminal, j->pgid);
+    if (tcsetpgrp(shell_terminal, j->pgid) == ERROR) {
+        printf("\"I am sorry, but tcsetpgrp failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
-    tcgetattr(shell_terminal, &j->termios_modes);
+    if (tcgetattr(shell_terminal, &j->termios_modes) == ERROR) {
+        printf("I am sorry, but tcgetattr failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* Wait for it to report.  */
-    waitpid (j->pgid, &status, WUNTRACED);
+    if(waitpid (j->pgid, &status, WUNTRACED) == ERROR) {
+        printf("I am sorry, but waitpid failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* Put the shell back in the foreground.  */
-    tcsetpgrp(shell_terminal, shell_pgid);
-    // printf("giving back shell new \n");
+    if (tcsetpgrp(shell_terminal, shell_pgid)== ERROR) {
+        printf("\"I am sorry, but tcsetpgrp failed.\n");
+        exit(EXIT_FAILURE);
+    }
+
     /* Restore the shell’s terminal modes.  */
-    // tcgetattr(shell_terminal, &shell_tmodes);
     tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
 }
 
@@ -549,9 +584,15 @@ background_job *get_background_from_pgid(pid_t pgid) {
 void foreground_helper(background_job *bj) {
     int status;
     /* Put the job into the foreground.  */
-    tcsetpgrp(shell_terminal, bj->pgid);
+    if (tcsetpgrp(shell_terminal, bj->pgid) == ERROR) {
+        printf("\"I am sorry, but tcsetpgrp failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
-    tcgetattr(shell_terminal, &bj->termios_modes);
+    if (tcgetattr(shell_terminal, &bj->termios_modes) == ERROR) {
+        printf("I am sorry, but tcgetattr failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* Send the job a continue signal, if necessary.  */
     tcsetattr(shell_terminal, TCSADRAIN, &bj->termios_modes);
@@ -565,10 +606,12 @@ void foreground_helper(background_job *bj) {
     waitpid(bj->pgid , &status, WUNTRACED);
 
     /* Put the shell back in the foreground.  */
-    tcsetpgrp(shell_terminal, shell_pgid);
+    if (tcsetpgrp(shell_terminal, shell_pgid) == ERROR) {
+        printf("\"I am sorry, but tcsetpgrp failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* Restore the shell’s terminal modes.  */
-    // tcgetattr(shell_terminal, &shell_tmodes);
     tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
 }
 
