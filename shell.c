@@ -672,22 +672,22 @@ int kill_builtin(char **args) {
 
             /* test return to number and errno values */
             if (nptr == endptr) {
-                printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (no digits found, 0 returned)\n", number);
                 return FALSE;
             } else if (errno == ERANGE && number == LONG_MIN) {
-                printf(" number : %lld  invalid  (underflow occurred)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (underflow occurred)\n", number);
                 return FALSE;
             } else if (errno == ERANGE && number == LONG_MAX) {
-                printf(" number : %lld  invalid  (overflow occurred)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (overflow occurred)\n", number);
                 return FALSE;
             } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
-                printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (base contains unsupported value)\n", number);
                 return FALSE;
             } else if (errno != ZERO && number == ZERO) {
-                printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (unspecified error occurred)\n", number);
                 return FALSE;
             } else if (errno == ZERO && nptr && *endptr != ZERO) {
-                printf(" number : %lld    invalid  (since additional characters remain)\n", number);
+                fprintf(stderr, " number : %lld    invalid  (since additional characters remain)\n", number);
                 return FALSE;
             }
 
@@ -763,22 +763,22 @@ int kill_builtin(char **args) {
 
             /* test return to number and errno values */
             if (nptr == endptr) {
-                printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (no digits found, 0 returned)\n", number);
                 return FALSE;
             } else if (errno == ERANGE && number == LONG_MIN) {
-                printf(" number : %lld  invalid  (underflow occurred)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (underflow occurred)\n", number);
                 return FALSE;
             } else if (errno == ERANGE && number == LONG_MAX) {
-                printf(" number : %lld  invalid  (overflow occurred)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (overflow occurred)\n", number);
                 return FALSE;
             } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
-                printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (base contains unsupported value)\n", number);
                 return FALSE;
             } else if (errno != 0 && number == 0) {
-                printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (unspecified error occurred)\n", number);
                 return FALSE;
             } else if (errno == 0 && nptr && *endptr != 0) {
-                printf(" number : %lld    invalid  (since additional characters remain)\n", number);
+                fprintf(stderr, " number : %lld    invalid  (since additional characters remain)\n", number);
                 return FALSE;
             }
 
@@ -803,19 +803,33 @@ int kill_builtin(char **args) {
             } else {
                 pid_t pid = currentJob->pgid;
                 printf("%d pid\n", pid);
-                if (kill(pid, SIGTERM) == -1) {
+                if (kill(pid, SIGTERM) == ERROR) {
                     printError("I am sorry, an error occurred with kill.\n");
                     return FALSE; //error occurred
                 } else {
                     /* sig proc mask this */
                     sigset_t mask;
-                    sigemptyset(&mask);
-                    sigaddset(&mask, SIGCHLD);
-                    sigprocmask(SIG_BLOCK, &mask, NULL);
+
+                    if (sigemptyset(&mask) == ERROR) {
+                        perror("I am sorry, but sigemptyset failed.\n");
+                        exit(EXIT_FAILURE);
+                    }
+
+                    if (sigaddset(&mask, SIGCHLD) == ERROR) {
+                        perror("I am sorry, but sigaddset failed.\n");
+                        exit(EXIT_FAILURE);
+                    }
+                    if (sigprocmask(SIG_BLOCK, &mask, NULL) == ERROR) {
+                        perror("I am sorry, but sigprocmask failed.\n");
+                        exit(EXIT_FAILURE);
+                    }
 
                     trim_background_process_list(pid);
 
-                    sigprocmask(SIG_UNBLOCK, &mask, NULL);
+                    if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == ERROR) {
+                        perror("I am sorry, but sigprocmask failed.\n");
+                        exit(EXIT_FAILURE);
+                    }
                     return TRUE;
                 }
             }
@@ -856,7 +870,7 @@ int background_builtin(char **args) {
     int maxArgsLength = 2;
 
     if (argsLength < minArgsLength || argsLength > maxArgsLength) {
-        printError("I am sorry, but that is an invalid list of commands to bg.\n");
+        fprintf(stderr, "I am sorry, but that is an invalid list of commands to bg.\n");
         return FALSE;
     }
 
@@ -865,7 +879,7 @@ int background_builtin(char **args) {
         background_job *currentJob = all_background_jobs;
         background_job *nextJob = NULL;
         if (currentJob == NULL) {
-            printError("I am sorry, but that job does not exist.\n");
+            fprintf(stderr, "I am sorry, but that job does not exist.\n");
             return FALSE;
         }
 
@@ -878,16 +892,30 @@ int background_builtin(char **args) {
         }
 
         sigset_t mask;
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGCHLD);
-        sigprocmask(SIG_BLOCK, &mask, NULL);
+
+        if (sigemptyset(&mask) == ERROR) {
+            perror("I am sorry, but sigemptyset failed.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if (sigaddset(&mask, SIGCHLD) == ERROR) {
+            perror("I am sorry, but sigaddset failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (sigprocmask(SIG_BLOCK, &mask, NULL) == ERROR) {
+            perror("I am sorry, but sigprocmask failed.\n");
+            exit(EXIT_FAILURE);
+        }
 
         background_built_in_helper(currentJob, TRUE, RUNNING);
 
-        sigprocmask(SIG_UNBLOCK, &mask, NULL);
+        if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == ERROR) {
+            perror("I am sorry, but sigprocmask failed.\n");
+            exit(EXIT_FAILURE);
+        }
 
         return TRUE; //success!
-    } else if (argsLength == maxArgsLength && args[locationOfPercent][0] == '%') {
+    } else if (argsLength == maxArgsLength && args[locationOfPercent][ZERO] == '%') {
         //(error checking gotten from stack overflow)
         const char *nptr = args[locationOfPercent] + locationOfPercent;     /* string to read as a number   */
         char *endptr = NULL;                            /* pointer to additional chars  */
@@ -903,22 +931,22 @@ int background_builtin(char **args) {
 
         /* test return to number and errno values */
         if (nptr == endptr) {
-            printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
+            fprintf(stderr, " number : %lld  invalid  (no digits found, 0 returned)\n", number);
             return FALSE;
         } else if (errno == ERANGE && number == LONG_MIN) {
-            printf(" number : %lld  invalid  (underflow occurred)\n", number);
+            fprintf(stderr, " number : %lld  invalid  (underflow occurred)\n", number);
             return FALSE;
         } else if (errno == ERANGE && number == LONG_MAX) {
-            printf(" number : %lld  invalid  (overflow occurred)\n", number);
+            fprintf(stderr, " number : %lld  invalid  (overflow occurred)\n", number);
             return FALSE;
         } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
-            printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
+            fprintf(stderr, " number : %lld  invalid  (base contains unsupported value)\n", number);
             return FALSE;
-        } else if (errno != 0 && number == 0) {
-            printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
+        } else if (errno != ZERO && number == ZERO) {
+            fprintf(stderr, " number : %lld  invalid  (unspecified error occurred)\n", number);
             return FALSE;
-        } else if (errno == 0 && nptr && *endptr != 0) {
-            printf(" number : %lld    invalid  (since additional characters remain)\n", number);
+        } else if (errno == ZERO && nptr && *endptr != ZERO) {
+            fprintf(stderr, " number : %lld    invalid  (since additional characters remain)\n", number);
             return FALSE;
         }
 
@@ -932,13 +960,26 @@ int background_builtin(char **args) {
             if (currentNode == number) {
                 /* sig proc mask this */
                 sigset_t mask;
-                sigemptyset(&mask);
-                sigaddset(&mask, SIGCHLD);
-                sigprocmask(SIG_BLOCK, &mask, NULL);
+                if (sigemptyset(&mask) == ERROR) {
+                    perror("I am sorry, but sigemptyset failed.\n");
+                    exit(EXIT_FAILURE);
+                }
+
+                if (sigaddset(&mask, SIGCHLD) == ERROR) {
+                    perror("I am sorry, but sigaddset failed.\n");
+                    exit(EXIT_FAILURE);
+                }
+                if (sigprocmask(SIG_BLOCK, &mask, NULL) == ERROR) {
+                    perror("I am sorry, but sigprocmask failed.\n");
+                    exit(EXIT_FAILURE);
+                }
 
                 background_built_in_helper(currentJob, TRUE, RUNNING);
 
-                sigprocmask(SIG_UNBLOCK, &mask, NULL);
+                if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == ERROR) {
+                    perror("I am sorry, but sigprocmask failed.\n");
+                    exit(EXIT_FAILURE);
+                }
                 return TRUE;
             } else {
                 currentJob = currentJob->next_background_job;
@@ -947,7 +988,7 @@ int background_builtin(char **args) {
 
         //node was not found!
         if (currentNode < number || number <= 0) {
-            printError("I am sorry, but that job does not exist.\n");
+            fprintf(stderr, "I am sorry, but that job does not exist.\n");
         }
     }
 
@@ -970,10 +1011,10 @@ int foreground_builtin(char** args) {
 
     if (argsLength < minElements || argsLength > maxElements) {
         //invalid arguments
-        printError("I am sorry, but you have passed an invalid number of arguments to fg.\n");
+        fprintf(stderr, "I am sorry, but you have passed an invalid number of arguments to fg.\n");
         return FALSE;
     } else if (argsLength == maxElements) {
-        if (args[percentLocation][0] == '%') {
+        if (args[percentLocation][ZERO] == '%') {
             //(error checking gotten from stack overflow)
             const char *nptr =
                     args[percentLocation] + percentLocation;  /* string to read as a number      */
@@ -1031,20 +1072,19 @@ int foreground_builtin(char** args) {
 
             //node was not found!
             if (currentNode < number || number <= 0) {
-                printError("I am sorry, but that job does not exist.\n");
+                fprintf(stderr, "I am sorry, but that job does not exist.\n");
                 return FALSE;
             }
         } else {
-            printError("I am sorry, but you have passed an invalid node argument to fg.\n");
+            fprintf(stderr, "I am sorry, but you have passed an invalid node argument to fg.\n");
             return FALSE;
         }
     } else {
-
         //bring back tail of jobs list, if it exists
         background_job *currentJob = all_background_jobs;
         background_job *nextJob = NULL;
         if (currentJob == NULL) {
-            printError("I am sorry, but that job does not exist.\n");
+            fprintf(stderr, "I am sorry, but that job does not exist.\n");
             return FALSE;
         }
 
