@@ -46,6 +46,7 @@ int main (int argc, char **argv) {
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
     while (!EXIT) {
+
         perform_parse();
         job *currentJob = all_jobs;
 
@@ -416,8 +417,6 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
     signal(SIGTTOU, SIG_DFL);
     signal(SIGCHLD, SIG_DFL);
 
-
-
     /* Exec the new process.  Make sure we exit.  */
     execvp(p->args[0], p->args);
     fprintf(stderr, "Error: %s: command not found\n", p->args[0]);
@@ -461,17 +460,8 @@ void simple_background_job_setup(background_job *dest, job *org, int status)
 
 /* Put a job in the background.  If the cont argument is true, send
    the process group a SIGCONT signal to wake it up.  */
-void put_job_in_background(job *j, int cont, int status) { //TODO: check on merge here
-
+void put_job_in_background(job *j, int cont, int status) {
     /* Add job to the background list with status of running */
-
-    /* check if job is isn't already in background */
-    // background_job *does_exist_bj;
-
-    // if ((does_exist_bj = get_background_from_pgid(j->pgid)) != NULL) {
-    //     does_exist_bj->status = status;
-    // }
-
     if (!cont) {
         background_job *copyOfJ = malloc(sizeof(background_job));
         simple_background_job_setup(copyOfJ, j, status);
