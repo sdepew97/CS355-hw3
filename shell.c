@@ -27,19 +27,15 @@ char *bg_string = "bg\0";
 //strings and variables for jobs printout
 char *running = "Running\0";
 char *suspended = "Suspended\0";
+char *killed = "Killed\0";
 
 char *builtInTags[NUMBER_OF_BUILT_IN_FUNCTIONS];
 struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
 
 /* Main method and body of the function. */
 int main (int argc, char **argv) {
-    int status, read_command_status, parse_command_status;
     EXIT = FALSE;
-    pid_t pid;
-    char **commands = NULL;
-    char *cmd = NULL;
 
-    process p;
     initializeShell();
     buildBuiltIns(); //store all builtins in built in array
     while (!EXIT) {
@@ -47,6 +43,7 @@ int main (int argc, char **argv) {
         perform_parse();
         job *currentJob = all_jobs;
 
+        /* run list of jobs entered */
         while (currentJob != NULL) {
             if (!(currentJob->pass)) {
                 launchJob(currentJob, !(currentJob->run_in_background));
@@ -54,6 +51,7 @@ int main (int argc, char **argv) {
             currentJob = currentJob->next_job;
         }
 
+        /* add job to background if it is flagged */ 
         job *to_suspend = all_jobs;
         while (to_suspend != NULL) {
             if (to_suspend->suspend_this_job) {
@@ -62,29 +60,27 @@ int main (int argc, char **argv) {
             to_suspend = to_suspend->next_job;
         }
 
+        /*Print out job status updates */
+        background_job *bj = all_background_jobs;
+        int i = 0;
+        while (bj != NULL) {
+            char *status[] = {running, suspended, killed};
+            i++;
+            if(bj->verbose) {
+                printf("\n[%d] %s \t\t %s\n", i, status[bj->status], bj->job_string);
+                bj->verbose = FALSE;
+            }
+            bj = bj->next_background_job;
+            
+        }
+
         free_all_jobs();
+     
     }
 
     /* free any background jobs still in LL before exiting */
     free_background_jobs();
     return EXIT_SUCCESS;
-}
-
-void printoutargs() {
-    job *temp_job;
-    temp_job = all_jobs;
-    while (temp_job != NULL) {
-        process *temp_proc = temp_job->first_process;
-        while (temp_proc != NULL) {
-            int i = 0;
-            while ((temp_proc->args)[i] != NULL) {
-                printf("%s \n", (temp_proc->args)[i]);
-                i++;
-            }
-            temp_proc = temp_proc->next_process;
-        }
-        temp_job = temp_job->next_job;
-    }
 }
 
 /* Make sure the shell is running interactively as the foreground job
@@ -100,15 +96,32 @@ void initializeShell() {
             kill(-shell_pgid, SIGTTIN);
 
         /* Ignore interactive and job-control signals.  */
-        signal(SIGINT, SIG_IGN);
-        signal(SIGTERM, SIG_IGN);
-        signal(SIGQUIT, SIG_IGN);
-        signal(SIGTTIN, SIG_IGN);
-        signal(SIGTTOU, SIG_IGN);
-        signal(SIGTSTP, SIG_IGN);
+        if (signal(SIGINT, SIG_IGN) == SIG_ERR) {
+            perror("I am sorry, but signal failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (signal(SIGTERM, SIG_IGN) == SIG_ERR) {
+            perror("I am sorry, but signal failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (signal(SIGQUIT, SIG_IGN) == SIG_ERR) {
+            perror("I am sorry, but signal failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (signal(SIGTTIN, SIG_IGN) == SIG_ERR) {
+            perror("I am sorry, but signal failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (signal(SIGTTOU, SIG_IGN) == SIG_ERR) {
+            perror("I am sorry, but signal failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (signal(SIGTSTP, SIG_IGN) == SIG_ERR) {
+            perror("I am sorry, but signal failed.\n");
+            exit(EXIT_FAILURE);
+        }
 
-        //register a signal handler for SIGCHILD
-        /* Handle Signal */
+        /* registering sigchild handler */ 
         struct sigaction childreturn;
         memset(&childreturn, 0, sizeof(childreturn));
         childreturn.sa_sigaction = &childReturning;
@@ -119,7 +132,7 @@ void initializeShell() {
         /* add sig set for sig child and sigtstp */
         childreturn.sa_flags = SA_SIGINFO | SA_RESTART;
         if (sigaction(SIGCHLD, &childreturn, NULL) < 0) {
-            printError("Error with sigaction for child.\n");
+            perror("Error with sigaction for child.\n");
             return;
         }
 
@@ -135,6 +148,9 @@ void initializeShell() {
 
         /* Save default terminal attributes for shell.  */
         tcgetattr(shell_terminal, &shell_tmodes);
+    } else {
+        perror("I am sorry, there was an error with initializing the shell.\n");
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -145,31 +161,17 @@ void buildBuiltIns() {
     for (int i = 0; i < NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
         allBuiltIns[i].tag = builtInTags[i];
 
-        if (i == 0) {
+        if (i == ZERO) {
             allBuiltIns[i].function = exit_builtin;
-        } else if (i == 1) {
+        } else if (i == ONE) {
             allBuiltIns[i].function = kill_builtin;
-        } else if (i == 2) {
+        } else if (i == TWO) {
             allBuiltIns[i].function = jobs_builtin;
-        } else if (i == 3) {
+        } else if (i == THREE) {
             allBuiltIns[i].function = foreground_builtin;
         } else {
             allBuiltIns[i].function = background_builtin;
         }
-    }
-}
-
-/* Displays error message */
-void printError(char* message) {
-    printf("%s", message);
-}
-
-//TODO: use this function
-/* Frees commands and displays error message */
-void handleError(char* message, char **commands, int numCommands) {
-    printf("%s", message);
-    for(int i=0; i<numCommands; i++) {
-        printf("%s ", commands[i]); //something like "I am sorry, but the input string is invalid"
     }
 }
 
@@ -208,10 +210,17 @@ void trim_background_process_list(pid_t pid_to_remove) {
 
 job *package_job(background_job *cur_job) {
     job *to_return = malloc(sizeof(job));
-
+    if (to_return == NULL) {
+        perror("I am sorry, but there was an error with malloc.\n");
+        return NULL;
+    }
     to_return->pgid = cur_job->pgid;
     to_return->status = cur_job->status;
     to_return->full_job_string = malloc(lengthOf(cur_job->job_string) + 1);
+    if (to_return->full_job_string == NULL) {
+        perror("I am sorry, but there was an error with malloc.\n");
+        return NULL;
+    }
     strcpy(to_return->full_job_string, cur_job->job_string);
     return to_return;
 }
@@ -222,6 +231,7 @@ void job_suspend_helper(pid_t calling_id) {
     while (cur_job != NULL) {
         if (cur_job->pgid == calling_id) {
             cur_job->status = SUSPENDED;
+            cur_job->verbose = TRUE;
             return;
         }
         cur_job = cur_job->next_background_job;
@@ -231,7 +241,6 @@ void job_suspend_helper(pid_t calling_id) {
     job *check_foreground = all_jobs;
     while (check_foreground != NULL) {
         if (check_foreground->pgid == calling_id) {
-            // put_job_in_background(check_foreground, 0, SUSPENDED);
             check_foreground->suspend_this_job = TRUE;
             return;
         }
@@ -245,7 +254,6 @@ void childReturning(int sig, siginfo_t *siginfo, void *context) {
     pid_t calling_id = siginfo->si_pid;
 
     if (signum == SIGCHLD) {
-        //TODO: finish covering all SIGCHLD codes and ensure this is working correctly...
         //in the case of the child being killed, remove it from the list of jobs
         if(siginfo->si_code == CLD_KILLED || siginfo->si_code == CLD_DUMPED || siginfo->si_code == CLD_EXITED) {
             trim_background_process_list(calling_id); 
@@ -293,7 +301,7 @@ void removeNode(pid_t pidToRemove) {
  * built-in commands and -1 if it is not in the array allBuiltIns
  */
 int isBuiltInCommand(process cmd) {
-    for(int i=0; i<NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
+    for (int i = 0; i < NUMBER_OF_BUILT_IN_FUNCTIONS; i++) {
         if(process_equals(cmd, allBuiltIns[i])) {
             return i; //return index of command
         }
@@ -302,8 +310,6 @@ int isBuiltInCommand(process cmd) {
 }
 
 int process_equals(process process1, builtin builtin1) {
-    /* problem occurring with white space args -- temporary fix, need to make sure parser doesn't give back whitespace commands */
-    if (process1.args[0] == NULL) { return FALSE; }
     int compare_value = strcmp(process1.args[0], builtin1.tag);
     if (compare_value == FALSE) {
         return TRUE;
@@ -327,10 +333,8 @@ void launchJob(job *j, int foreground) {
 
         //run as a built-in command
         if (isBuiltIn != NOT_FOUND) {
-            //printf("built in");
             executeBuiltInCommand(p, isBuiltIn);
         }
-            //run through execvp
         else {
             /* Fork the child processes.  */
             pid = fork();
@@ -360,13 +364,27 @@ void launchJob(job *j, int foreground) {
             put_job_in_foreground(j, 0);
         } else { 
             sigset_t mask;
-            sigemptyset (&mask);
-            sigaddset(&mask, SIGCHLD);
-            sigprocmask(SIG_BLOCK, &mask, NULL);
 
-            put_job_in_background(j, 0, RUNNING);
+            if (sigemptyset(&mask) == ERROR) {
+                perror("I am sorry, but sigemptyset failed.\n");
+                exit(EXIT_FAILURE);
+            }
 
-            sigprocmask(SIG_UNBLOCK, &mask, NULL);
+            if (sigaddset(&mask, SIGCHLD) == ERROR) {
+                perror("I am sorry, but sigaddset failed.\n");
+                exit(EXIT_FAILURE);
+            }
+            if (sigprocmask(SIG_BLOCK, &mask, NULL) == ERROR) {
+                perror("I am sorry, but sigprocmask failed.\n");
+                exit(EXIT_FAILURE);
+            }
+
+            put_job_in_background(j, !CONTINUE, RUNNING);
+
+            if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == ERROR) {
+                perror("I am sorry, but sigprocmask failed.\n");
+                exit(EXIT_FAILURE);
+            }
         }
     }
 }
@@ -387,7 +405,10 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
         pgid = pid;
     }
 
-    setpgid(pid, pgid);
+    if (setpgid(pid, pgid) < ZERO) {
+        perror("Couldn't put the shell in its own process group.\n");
+        exit(EXIT_FAILURE);
+    }
 
     if (foreground) {
         if (tcsetpgrp(shell_terminal, pgid) < 0) {
@@ -397,20 +418,37 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
     }
 
     /* Set the handling for job control signals back to the default.  */
-    signal(SIGINT, SIG_DFL);
-    signal(SIGQUIT, SIG_DFL);
-    signal(SIGTSTP, SIG_DFL);
-    signal(SIGTTIN, SIG_DFL);
-    signal(SIGTTOU, SIG_DFL);
-    signal(SIGCHLD, SIG_DFL);
-
-
+    if (signal(SIGINT, SIG_DFL) == SIG_ERR) {
+        perror("I am sorry, but signal failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (signal(SIGQUIT, SIG_DFL) == SIG_ERR) {
+        perror("I am sorry, but signal failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (signal(SIGTSTP, SIG_DFL) == SIG_ERR) {
+        perror("I am sorry, but signal failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (signal(SIGTTIN, SIG_DFL) == SIG_ERR) {
+        perror("I am sorry, but signal failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (signal(SIGTTOU, SIG_DFL) == SIG_ERR) {
+        perror("I am sorry, but signal failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    if (signal(SIGCHLD, SIG_DFL) == SIG_ERR) {
+        perror("I am sorry, but signal failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* Exec the new process.  Make sure we exit.  */
-    execvp(p->args[0], p->args);
-    fprintf(stderr, "Error: %s: command not found\n", p->args[0]);
-    free_all_jobs();
-    exit(TRUE);
+    if (execvp(p->args[ZERO], p->args) == ERROR) {
+        fprintf(stderr, "Error: %s: command not found\n", p->args[0]);
+        free_all_jobs();
+    }
+    exit(EXIT_FAILURE);   
 }
 
 /* Put job j in the foreground.  If cont is nonzero,
@@ -420,24 +458,32 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
 void put_job_in_foreground (job *j, int cont) {
     int status;
     /* Put the job into the foreground.  */
-    tcsetpgrp(shell_terminal, j->pgid);
+    if (tcsetpgrp(shell_terminal, j->pgid) == ERROR) {
+        perror("\"I am sorry, but tcsetpgrp failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
-    tcgetattr(shell_terminal, &j->termios_modes);
+    if (tcgetattr(shell_terminal, &j->termios_modes) == ERROR) {
+        perror("I am sorry, but tcgetattr failed.\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* Wait for it to report.  */
-    waitpid (j->pgid, &status, WUNTRACED);
-    if (WIFSTOPPED(status))
-    {
-        job_suspend_helper(j->pgid);
+    if(waitpid (j->pgid, &status, WUNTRACED) == ERROR) {
+        perror("I am sorry, but waitpid failed.\n");
+        exit(EXIT_FAILURE);
     }
 
     /* Put the shell back in the foreground.  */
-    tcsetpgrp(shell_terminal, shell_pgid);
-    // printf("giving back shell new \n");
+    if (tcsetpgrp(shell_terminal, shell_pgid)== ERROR) {
+        perror("\"I am sorry, but tcsetpgrp failed.\n");
+        exit(EXIT_FAILURE);
+    }
+
     /* Restore the shell’s terminal modes.  */
-    // tcgetattr(shell_terminal, &shell_tmodes);
     tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
 }
+
 
 /* takes background job and gives it to background job */
 void simple_background_job_setup(background_job *dest, job *org, int status)
@@ -446,8 +492,13 @@ void simple_background_job_setup(background_job *dest, job *org, int status)
     dest->status = status;
     dest->termios_modes = org->termios_modes; // <<< potential source of error here? valgrind and fg seems to be complaing about unitialized bytes
     char *js = malloc(sizeof(char) * lengthOf(org->full_job_string) + 1);
+    if(js == NULL) {
+        perror("I am sorry, but there was an error with malloc.\n");
+        exit(EXIT_FAILURE);
+    }
     strcpy(js, org->full_job_string);
     dest->job_string = js;
+    dest->verbose = TRUE;
     dest->next_background_job = NULL;
 }
 
@@ -457,6 +508,10 @@ void put_job_in_background(job *j, int cont, int status) { //TODO: check on merg
     /* Add job to the background list with status of running */
     if (!cont) {
         background_job *copyOfJ = malloc(sizeof(background_job));
+        if(copyOfJ == NULL) {
+            perror("I am sorry, but there was an error with malloc.\n");
+            exit(EXIT_FAILURE);
+        }
         simple_background_job_setup(copyOfJ, j, status);
         if (all_background_jobs == NULL) {
             all_background_jobs = copyOfJ;
@@ -536,12 +591,18 @@ background_job *get_background_from_pgid(pid_t pgid) {
 void foreground_helper(background_job *bj) {
     int status;
     /* Put the job into the foreground.  */
-    tcsetpgrp(shell_terminal, bj->pgid);
+    if (tcsetpgrp(shell_terminal, bj->pgid) == ERROR) {
+        perror("\"I am sorry, but tcsetpgrp failed.\n");
+    }
 
-    tcgetattr(shell_terminal, &bj->termios_modes);
+    if (tcgetattr(shell_terminal, &bj->termios_modes) == ERROR) {
+        perror("I am sorry, but tcgetattr failed.\n");
+    }
 
     /* Send the job a continue signal, if necessary.  */
-    tcsetattr(shell_terminal, TCSADRAIN, &bj->termios_modes);
+    if (tcsetattr(shell_terminal, TCSADRAIN, &bj->termios_modes) == ERROR) {
+        perror("I am sorry, but tcsetattr failed.\n");
+    }
 
     if (kill(-bj->pgid, SIGCONT) < 0)
         perror("kill (SIGCONT)");
@@ -552,11 +613,14 @@ void foreground_helper(background_job *bj) {
     waitpid(bj->pgid , &status, WUNTRACED);
 
     /* Put the shell back in the foreground.  */
-    tcsetpgrp(shell_terminal, shell_pgid);
+    if (tcsetpgrp(shell_terminal, shell_pgid) == ERROR) {
+        perror("\"I am sorry, but tcsetpgrp failed.\n");
+    }
 
     /* Restore the shell’s terminal modes.  */
-    // tcgetattr(shell_terminal, &shell_tmodes);
-    tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
+    if (tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes) == ERROR) {
+        perror("tcsetattr");
+    }
 }
 
 /* Method to take a job id and send a SIGTERM to terminate the process.*/
@@ -573,11 +637,11 @@ int kill_builtin(char **args) {
 
     if (argsLength < minElements || argsLength > maxElements) {
         //invalid arguments
-        printError("I am sorry, but you have passed an invalid number of arguments to kill.\n");
+        fprintf(stderr,"I am sorry, but you have passed an invalid number of arguments to kill.\n");
         return FALSE;
-    } else if (argsLength == maxElements && args[pidLocation][0] == '%') {
-        if (strcmp(args[flagLocation],
-                   flag) == 0) { //check that -9 flag was input correctly, otherwise try sending kill with pid
+    } else if (argsLength == maxElements && args[pidLocation][ZERO] == '%') {
+        if (strcmp(args[flagLocation], flag) ==
+            ZERO) { //check that -9 flag was input correctly, otherwise try sending kill with pid
             //(error checking gotten from stack overflow)
             const char *nptr = args[pidLocation] + pidLocationNoFlag;  /* string to read as a number      */
             char *endptr = NULL;                            /* pointer to additional chars  */
@@ -603,10 +667,10 @@ int kill_builtin(char **args) {
             } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
                 printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
                 return FALSE;
-            } else if (errno != 0 && number == 0) {
+            } else if (errno != ZERO && number == ZERO) {
                 printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
                 return FALSE;
-            } else if (errno == 0 && nptr && *endptr != 0) {
+            } else if (errno == ZERO && nptr && *endptr != ZERO) {
                 printf(" number : %lld    invalid  (since additional characters remain)\n", number);
                 return FALSE;
             }
@@ -626,31 +690,20 @@ int kill_builtin(char **args) {
             }
 
             //node was not found!
-            if (currentNode < number || number <= 0) {
-                printError("I am sorry, but that job does not exist.\n");
+            if (currentNode < number || number <= ZERO) {
+                fprintf(stderr,"I am sorry, but that job does not exist.\n");
                 return FALSE;
             } else {
                 pid_t pid = currentJob->pgid;
-                printf("%d pid\n", pid);
-                if (kill(pid, SIGKILL) == -1) {
-                    printError("I am sorry, an error occurred with kill.\n");
+                printf("Sent SIGKILL to %d, check jobs to see completed\n", pid);
+                if (kill(pid, SIGKILL) == ERROR) {
+                    perror("I am sorry, an error occurred with kill.\n");
                     return FALSE; //error occurred
-                } else {
-                    /* sig proc mask this */
-                    sigset_t mask;
-                    sigemptyset(&mask);
-                    sigaddset(&mask, SIGCHLD);
-                    sigprocmask(SIG_BLOCK, &mask, NULL);
-
-                    trim_background_process_list(pid);
-
-                    sigprocmask(SIG_UNBLOCK, &mask, NULL);
-                    return TRUE;
-                }
+                } 
             }
         }
     } else { //we have no flags and only kill with a pid
-        if (args[pidLocationNoFlag][0] == '%') {
+        if (args[pidLocationNoFlag][ZERO] == '%') {
             //PID is second argument
             //(error checking gotten from stack overflow)
             const char *nptr =
@@ -662,29 +715,27 @@ int kill_builtin(char **args) {
             /* reset errno to 0 before call */
             errno = 0;
 
-            printf("job number %s\n", nptr);
-
             /* call to strtol assigning return to number */
             number = strtoll(nptr, &endptr, base);
 
             /* test return to number and errno values */
             if (nptr == endptr) {
-                printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (no digits found, 0 returned)\n", number);
                 return FALSE;
             } else if (errno == ERANGE && number == LONG_MIN) {
-                printf(" number : %lld  invalid  (underflow occurred)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (underflow occurred)\n", number);
                 return FALSE;
             } else if (errno == ERANGE && number == LONG_MAX) {
-                printf(" number : %lld  invalid  (overflow occurred)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (overflow occurred)\n", number);
                 return FALSE;
             } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
-                printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (base contains unsupported value)\n", number);
                 return FALSE;
             } else if (errno != 0 && number == 0) {
-                printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
+                fprintf(stderr, " number : %lld  invalid  (unspecified error occurred)\n", number);
                 return FALSE;
             } else if (errno == 0 && nptr && *endptr != 0) {
-                printf(" number : %lld    invalid  (since additional characters remain)\n", number);
+                fprintf(stderr, " number : %lld    invalid  (since additional characters remain)\n", number);
                 return FALSE;
             }
 
@@ -704,25 +755,14 @@ int kill_builtin(char **args) {
 
             //node was not found!
             if (currentNode < number || number <= 0) {
-                printError("I am sorry, but that job does not exist.\n");
+                fprintf(stderr,"I am sorry, but that job does not exist.\n");
                 return FALSE;
             } else {
                 pid_t pid = currentJob->pgid;
-                printf("%d pid\n", pid);
+                printf("Sent SIGTERM to %d, check jobs to see completed\n", pid);
                 if (kill(pid, SIGTERM) == -1) {
-                    printError("I am sorry, an error occurred with kill.\n");
+                    fprintf(stderr,"I am sorry, an error occurred with kill.\n");
                     return FALSE; //error occurred
-                } else {
-                    /* sig proc mask this */
-                    sigset_t mask;
-                    sigemptyset(&mask);
-                    sigaddset(&mask, SIGCHLD);
-                    sigprocmask(SIG_BLOCK, &mask, NULL);
-
-                    trim_background_process_list(pid);
-
-                    sigprocmask(SIG_UNBLOCK, &mask, NULL);
-                    return TRUE;
                 }
             }
         }
@@ -734,7 +774,7 @@ int kill_builtin(char **args) {
 /* Method to iterate through the linked list and print out node parameters. */
 int jobs_builtin(char **args) {
     background_job *currentJob = all_background_jobs;
-    char *status[] = {running, suspended};
+    char *status[] = {running, suspended, killed};
     int jobID = 1;
 
     if (currentJob == NULL) {} // do nothing
@@ -762,7 +802,7 @@ int background_builtin(char **args) {
     int maxArgsLength = 2;
 
     if (argsLength < minArgsLength || argsLength > maxArgsLength) {
-        printError("I am sorry, but that is an invalid list of commands to bg.\n");
+        fprintf(stderr, "I am sorry, but that is an invalid list of commands to bg.\n");
         return FALSE;
     }
 
@@ -771,7 +811,7 @@ int background_builtin(char **args) {
         background_job *currentJob = all_background_jobs;
         background_job *nextJob = NULL;
         if (currentJob == NULL) {
-            printError("I am sorry, but that job does not exist.\n");
+            fprintf(stderr,"I am sorry, but that job does not exist.\n");
             return FALSE;
         }
 
@@ -784,13 +824,27 @@ int background_builtin(char **args) {
         }
 
         sigset_t mask;
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGCHLD);
-        sigprocmask(SIG_BLOCK, &mask, NULL);
+
+        if (sigemptyset(&mask) == ERROR) {
+            perror("I am sorry, but sigemptyset failed.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if (sigaddset(&mask, SIGCHLD) == ERROR) {
+            perror("I am sorry, but sigaddset failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (sigprocmask(SIG_BLOCK, &mask, NULL) == ERROR) {
+            perror("I am sorry, but sigprocmask failed.\n");
+            exit(EXIT_FAILURE);
+        }
 
         background_built_in_helper(currentJob, TRUE, RUNNING);
 
-        sigprocmask(SIG_UNBLOCK, &mask, NULL);
+        if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == ERROR) {
+            perror("I am sorry, but sigprocmask failed.\n");
+            exit(EXIT_FAILURE);
+        }
 
         return TRUE; //success!
     } else if (argsLength == maxArgsLength && args[locationOfPercent][0] == '%') {
@@ -809,22 +863,22 @@ int background_builtin(char **args) {
 
         /* test return to number and errno values */
         if (nptr == endptr) {
-            printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
+            fprintf(stderr, " number : %lld  invalid  (no digits found, 0 returned)\n", number);
             return FALSE;
         } else if (errno == ERANGE && number == LONG_MIN) {
-            printf(" number : %lld  invalid  (underflow occurred)\n", number);
+            fprintf(stderr, " number : %lld  invalid  (underflow occurred)\n", number);
             return FALSE;
         } else if (errno == ERANGE && number == LONG_MAX) {
-            printf(" number : %lld  invalid  (overflow occurred)\n", number);
+            fprintf(stderr, " number : %lld  invalid  (overflow occurred)\n", number);
             return FALSE;
         } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
-            printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
+            fprintf(stderr, " number : %lld  invalid  (base contains unsupported value)\n", number);
             return FALSE;
-        } else if (errno != 0 && number == 0) {
-            printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
+        } else if (errno != ZERO && number == ZERO) {
+            fprintf(stderr, " number : %lld  invalid  (unspecified error occurred)\n", number);
             return FALSE;
-        } else if (errno == 0 && nptr && *endptr != 0) {
-            printf(" number : %lld    invalid  (since additional characters remain)\n", number);
+        } else if (errno == ZERO && nptr && *endptr != ZERO) {
+            fprintf(stderr, " number : %lld    invalid  (since additional characters remain)\n", number);
             return FALSE;
         }
 
@@ -838,14 +892,26 @@ int background_builtin(char **args) {
             if (currentNode == number) {
                 /* sig proc mask this */
                 sigset_t mask;
-                sigemptyset(&mask);
-                sigaddset(&mask, SIGCHLD);
-                sigprocmask(SIG_BLOCK, &mask, NULL);
+                if (sigemptyset(&mask) == ERROR) {
+                    perror("I am sorry, but sigemptyset failed.\n");
+                    exit(EXIT_FAILURE);
+                }
+
+                if (sigaddset(&mask, SIGCHLD) == ERROR) {
+                    perror("I am sorry, but sigaddset failed.\n");
+                    exit(EXIT_FAILURE);
+                }
+                if (sigprocmask(SIG_BLOCK, &mask, NULL) == ERROR) {
+                    perror("I am sorry, but sigprocmask failed.\n");
+                    exit(EXIT_FAILURE);
+                }
 
                 background_built_in_helper(currentJob, TRUE, RUNNING);
 
-                sigprocmask(SIG_UNBLOCK, &mask, NULL);
-                return TRUE;
+                if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == ERROR) {
+                    perror("I am sorry, but sigprocmask failed.\n");
+                    exit(EXIT_FAILURE);
+                }
             } else {
                 currentJob = currentJob->next_background_job;
             }
@@ -853,7 +919,7 @@ int background_builtin(char **args) {
 
         //node was not found!
         if (currentNode < number || number <= 0) {
-            printError("I am sorry, but that job does not exist.\n");
+            fprintf(stderr,"I am sorry, but that job does not exist.\n");
         }
     }
 
@@ -876,7 +942,7 @@ int foreground_builtin(char** args) {
 
     if (argsLength < minElements || argsLength > maxElements) {
         //invalid arguments
-        printError("I am sorry, but you have passed an invalid number of arguments to fg.\n");
+        fprintf(stderr, "I am sorry, but you have passed an invalid number of arguments to fg.\n");
         return FALSE;
     } else if (argsLength == maxElements) {
         if (args[percentLocation][0] == '%') {
@@ -897,22 +963,22 @@ int foreground_builtin(char** args) {
 
             /* test return to number and errno values */
             if (nptr == endptr) {
-                printf(" number : %lld  invalid  (no digits found, 0 returned)\n", number);
+                fprintf(stderr," number : %lld  invalid  (no digits found, 0 returned)\n", number);
                 return FALSE;
             } else if (errno == ERANGE && number == LONG_MIN) {
-                printf(" number : %lld  invalid  (underflow occurred)\n", number);
+                fprintf(stderr," number : %lld  invalid  (underflow occurred)\n", number);
                 return FALSE;
             } else if (errno == ERANGE && number == LONG_MAX) {
-                printf(" number : %lld  invalid  (overflow occurred)\n", number);
+                fprintf(stderr," number : %lld  invalid  (overflow occurred)\n", number);
                 return FALSE;
             } else if (errno == EINVAL) { /* not in all c99 implementations - gcc OK */
-                printf(" number : %lld  invalid  (base contains unsupported value)\n", number);
+                fprintf(stderr," number : %lld  invalid  (base contains unsupported value)\n", number);
                 return FALSE;
             } else if (errno != 0 && number == 0) {
-                printf(" number : %lld  invalid  (unspecified error occurred)\n", number);
+                fprintf(stderr," number : %lld  invalid  (unspecified error occurred)\n", number);
                 return FALSE;
             } else if (errno == 0 && nptr && *endptr != 0) {
-                printf(" number : %lld    invalid  (since additional characters remain)\n", number);
+                fprintf(stderr," number : %lld    invalid  (since additional characters remain)\n", number);
                 return FALSE;
             }
 
@@ -924,8 +990,6 @@ int foreground_builtin(char** args) {
                 currentNode++;
                 //found your node requested
                 if (currentNode == number) {
-                    // put job into the foreground here
-                    pid_t pid = currentJob->pgid;
 
                     foreground_helper(currentJob);
 
@@ -937,11 +1001,11 @@ int foreground_builtin(char** args) {
 
             //node was not found!
             if (currentNode < number || number <= 0) {
-                printError("I am sorry, but that job does not exist.\n");
+                fprintf(stderr,"I am sorry, but that job does not exist.\n");
                 return FALSE;
             }
         } else {
-            printError("I am sorry, but you have passed an invalid node argument to fg.\n");
+            fprintf(stderr,"I am sorry, but you have passed an invalid node argument to fg.\n");
             return FALSE;
         }
     } else {
@@ -950,7 +1014,7 @@ int foreground_builtin(char** args) {
         background_job *currentJob = all_background_jobs;
         background_job *nextJob = NULL;
         if (currentJob == NULL) {
-            printError("I am sorry, but that job does not exist.\n");
+            fprintf(stderr,"I am sorry, but that job does not exist.\n");
             return FALSE;
         }
 
@@ -962,9 +1026,6 @@ int foreground_builtin(char** args) {
             }
             currentJob = currentJob->next_background_job;
         }
-
-        /* get last process pid_t */
-        pid_t pid = currentJob->pgid;
 
         foreground_helper(currentJob);
 

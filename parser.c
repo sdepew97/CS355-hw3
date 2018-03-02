@@ -27,7 +27,10 @@ int split_white_space(char **user_input, char ***tokenized_input)
 
 	(*tokenized_input) = malloc(sizeof(char*)*BUFFER_SIZE);
 
-	if (*tokenized_input == NULL) { return EXIT; }
+	if (*tokenized_input == NULL) { 
+		perror("Malloc");
+		return EXIT; 
+	}
 
 	int i = 0;
 	(*tokenized_input)[i] = strtok(*user_input, " ");
@@ -38,6 +41,7 @@ int split_white_space(char **user_input, char ***tokenized_input)
 			/* must protect against realloc failure memory leak */ 
 			char **new_tokenized_input;
 			if ((new_tokenized_input = realloc((*tokenized_input), sizeof(char*)*buffer_mark)) == NULL) {
+				perror("Malloc: ");
 				return EXIT;
 			}
 			(*tokenized_input) = new_tokenized_input;
@@ -60,7 +64,6 @@ int is_a_deliminator(char *s) {
 char *get_next_token()
 {
 	int count = 0;
-	int is_null = FALSE;
 	char *token = NULL;
 	if (strncmp(t->pos, "\0", 1) == 0) {
 		return NULL;
@@ -82,6 +85,7 @@ char *get_next_token()
 	}
 }
 
+/* get the last element of a command that isn't the null terminator */ 
 char *last_element_of(char *str)
 {
 	char *i = &str[0];
@@ -90,12 +94,11 @@ char *last_element_of(char *str)
 		i++;
 		j++;
 	}
-
 	if (j == 0) { return "\0"; }
 	else { return --i; }
 }
 
-
+/* get length of char* */
 int lengthOf(char *str){
     int i = 0;
     while (str[i] != '\0') {
@@ -107,7 +110,6 @@ int lengthOf(char *str){
 /* check to see if job string has only white space and deliminators */
 int isWhiteSpaceJob(char *t)
 {
-	int i = 0;
 	char *pos = &t[0];
 	while (strncmp(pos, "\0", 1) != 0) {
 		if (!(strncmp(pos, " ", 1) == 0 || is_a_deliminator(pos))) {
@@ -127,13 +129,6 @@ int perform_parse()
 
 	/* readline causes leak */
 	line = readline(PROMPT);
-	// char *line = malloc(sizeof(char) * 1024);
-	// if (line < 0) {
-	// 	fprintf(stderr, "malloc failed \n");
-	// }
-	// snprintf(line, 1024, "blah");
-    // line = "pwd";
-	// line = "python test.py &  python test.py & python test.py & python test.py & python test.py & python test.py & python test.py & python test.py & python test.py &";
 
 	/* handle c-d */
 	if (line == NULL) {
@@ -152,7 +147,6 @@ int perform_parse()
 	t->pos = &((t->str)[0]);
 
 	char *token = NULL;
-	char **tokenized_process = NULL;
 	int num_jobs = 0;
 
 	while((token = get_next_token()) != NULL) {
@@ -173,9 +167,17 @@ int perform_parse()
 	while ((token = get_next_token()) != NULL) {
 		job *new_job;
 		new_job = malloc(sizeof(job));
+		if (new_job == NULL) {
+			perror("Malloc");
+			break;
+		}
 		new_job->next_job = NULL;
 
 		char *fjs = malloc(lengthOf(token) + 1);
+		if (fjs == NULL) {
+			perror("Malloc");
+			break;
+		}
 
 		cur_job->full_job_string = strcpy(fjs, token);
 		cur_job->job_string = token;
@@ -214,8 +216,14 @@ int perform_parse()
 		process *cur_process;
 		char **tokenized_process;
 		cur_process = malloc(sizeof(process));
+		if (cur_process == NULL) {
+			perror("Malloc");
+			break;
+		}
 
-		split_white_space(&(temp_job->job_string), &(tokenized_process));
+		if (split_white_space(&(temp_job->job_string), &(tokenized_process)) == EXIT) {
+			break;
+		}
 
 		cur_process->args = tokenized_process;
 		cur_process->next_process = NULL;

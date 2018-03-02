@@ -13,6 +13,7 @@
 #define BUFFERSIZE 4096
 #define RUNNING 0
 #define SUSPENDED 1
+#define KILLED 2
 #define FALSE 0
 #define TRUE 1
 #define NUMBER_OF_BUILT_IN_FUNCTIONS 5
@@ -64,6 +65,7 @@ typedef struct background_job {
     pid_t pgid;
     int status;
     char *job_string;
+    int verbose;
     struct termios termios_modes;
 } background_job;
 
