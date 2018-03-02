@@ -32,12 +32,8 @@ struct builtin allBuiltIns[NUMBER_OF_BUILT_IN_FUNCTIONS];
 
 /* Main method and body of the function. */
 int main (int argc, char **argv) {
-    int status, read_command_status, parse_command_status;
     EXIT = FALSE;
     pid_t pid;
-    char **commands = NULL;
-    char *cmd = NULL;
-    process p;
 
     //setup
     initializeShell();
@@ -367,16 +363,30 @@ void launchJob(job *j, int foreground) {
 
     if (isBuiltIn == NOT_FOUND) {
         if (foreground) {
-            put_job_in_foreground(j, 0);
-        } else { 
+            put_job_in_foreground(j, ZERO);
+        } else {
             sigset_t mask;
-            sigemptyset (&mask);
-            sigaddset(&mask, SIGCHLD);
-            sigprocmask(SIG_BLOCK, &mask, NULL);
 
-            put_job_in_background(j, 0, RUNNING);
+            if (sigemptyset(&mask) == ERROR) {
+                printf("I am sorry, but sigemptyset failed.\n");
+                exit(EXIT_FAILURE);
+            }
 
-            sigprocmask(SIG_UNBLOCK, &mask, NULL);
+            if (sigaddset(&mask, SIGCHLD) == ERROR) {
+                printf("I am sorry, but sigaddset failed.\n");
+                exit(EXIT_FAILURE);
+            }
+            if (sigprocmask(SIG_BLOCK, &mask, NULL) == ERROR) {
+                printf("I am sorry, but sigprocmask failed.\n");
+                exit(EXIT_FAILURE);
+            }
+
+            put_job_in_background(j, ZERO, RUNNING);
+
+            if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == ERROR) {
+                printf("I am sorry, but sigprocmask failed.\n");
+                exit(EXIT_FAILURE);
+            }
         }
     }
 }
