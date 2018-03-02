@@ -72,33 +72,33 @@ void initializeShell() {
         pid_t pgrp;
         while ((pgrp = tcgetpgrp(shell_terminal)) != ERROR && pgrp != (shell_pgid = getpgrp()))
             if (kill(-shell_pgid, SIGTTIN) >= FAILURE) {
-                printError("I am sorry, but kill failed.\n");
+                fprintf(stderr, "I am sorry, but kill failed.\n");
                 exit(EXIT_FAILURE);
             }
 
         /* Ignore interactive and job-control signals.  */
         if (signal(SIGINT, SIG_IGN) == SIG_ERR) {
-            printError("I am sorry, but signal failed.\n");
+            fprintf(stderr, "I am sorry, but signal failed.\n");
             exit(EXIT_FAILURE);
         }
         if (signal(SIGTERM, SIG_IGN) == SIG_ERR) {
-            printError("I am sorry, but signal failed.\n");
+            fprintf(stderr, "I am sorry, but signal failed.\n");
             exit(EXIT_FAILURE);
         }
         if (signal(SIGQUIT, SIG_IGN) == SIG_ERR) {
-            printError("I am sorry, but signal failed.\n");
+            fprintf(stderr, "I am sorry, but signal failed.\n");
             exit(EXIT_FAILURE);
         }
         if (signal(SIGTTIN, SIG_IGN) == SIG_ERR) {
-            printError("I am sorry, but signal failed.\n");
+            fprintf(stderr, "I am sorry, but signal failed.\n");
             exit(EXIT_FAILURE);
         }
         if (signal(SIGTTOU, SIG_IGN) == SIG_ERR) {
-            printError("I am sorry, but signal failed.\n");
+            fprintf(stderr, "I am sorry, but signal failed.\n");
             exit(EXIT_FAILURE);
         }
         if (signal(SIGTSTP, SIG_IGN) == SIG_ERR) {
-            printError("I am sorry, but signal failed.\n");
+            fprintf(stderr, "I am sorry, but signal failed.\n");
             exit(EXIT_FAILURE);
         }
 
@@ -123,7 +123,7 @@ void initializeShell() {
         /* add sig set for sig child and sigtstp */
         childreturn.sa_flags = SA_SIGINFO | SA_RESTART;
         if (sigaction(SIGCHLD, &childreturn, NULL) < ZERO) {
-            printError("Error with sigaction for child.\n");
+            fprintf(stderr, "Error with sigaction for child.\n");
             exit(EXIT_FAILURE);
         }
 
@@ -146,7 +146,7 @@ void initializeShell() {
             exit(EXIT_FAILURE);
         }
     } else {
-        printError("I am sorry, there was an error with initializing the shell.\n");
+        fprintf(stderr, "I am sorry, there was an error with initializing the shell.\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -170,11 +170,6 @@ void buildBuiltIns() {
             allBuiltIns[i].function = background_builtin;
         }
     }
-}
-
-/* Displays error message */
-void printError(char* message) {
-    printf("%s\n", message);
 }
 
 /* Method that takes a command pointer and checks if the command is a background or foreground job.
@@ -324,6 +319,7 @@ int executeBuiltInCommand(process *process1, int index) {
     return (*(allBuiltIns[index].function))(process1->args);
 }
 
+//method  based off of https://www.gnu.org/software/libc/manual/html_node/Launching-Jobs.html#Launching-Jobs
 void launchJob(job *j, int foreground) {
     process *p;
     pid_t pid;
@@ -421,33 +417,33 @@ void launchProcess (process *p, pid_t pgid, int infile, int outfile, int errfile
 
     /* Set the handling for job control signals back to the default.  */
     if (signal(SIGINT, SIG_DFL) == SIG_ERR) {
-        printError("I am sorry, but signal failed.\n");
+        fprintf(stderr, "I am sorry, but signal failed.\n");
         exit(EXIT_FAILURE);
     }
     if (signal(SIGQUIT, SIG_DFL) == SIG_ERR) {
-        printError("I am sorry, but signal failed.\n");
+        fprintf(stderr, "I am sorry, but signal failed.\n");
         exit(EXIT_FAILURE);
     }
     if (signal(SIGTSTP, SIG_DFL) == SIG_ERR) {
-        printError("I am sorry, but signal failed.\n");
+        fprintf(stderr, "I am sorry, but signal failed.\n");
         exit(EXIT_FAILURE);
     }
     if (signal(SIGTTIN, SIG_DFL) == SIG_ERR) {
-        printError("I am sorry, but signal failed.\n");
+        fprintf(stderr, "I am sorry, but signal failed.\n");
         exit(EXIT_FAILURE);
     }
     if (signal(SIGTTOU, SIG_DFL) == SIG_ERR) {
-        printError("I am sorry, but signal failed.\n");
+        fprintf(stderr, "I am sorry, but signal failed.\n");
         exit(EXIT_FAILURE);
     }
     if (signal(SIGCHLD, SIG_DFL) == SIG_ERR) {
-        printError("I am sorry, but signal failed.\n");
+        fprintf(stderr, "I am sorry, but signal failed.\n");
         exit(EXIT_FAILURE);
     }
 
     /* Exec the new process.  Make sure we exit.  */
     if (execvp(p->args[ZERO], p->args) == ERROR) {
-        printError("I am sorry, but there was an error with execvp.\n");
+        fprintf(stderr, "I am sorry, but there was an error with execvp.\n");
         exit(EXIT_FAILURE);
     }
     fprintf(stderr, "Error: %s: command not found\n", p->args[ZERO]);
@@ -653,7 +649,7 @@ int kill_builtin(char **args) {
 
     if (argsLength < minElements || argsLength > maxElements) {
         //invalid arguments
-        printError("I am sorry, but you have passed an invalid number of arguments to kill.\n");
+        fprintf(stderr, "I am sorry, but you have passed an invalid number of arguments to kill.\n");
         return FALSE;
     } else if (argsLength == maxElements && args[pidLocation][ZERO] == '%') {
         if (strcmp(args[flagLocation], flag) ==
@@ -707,7 +703,7 @@ int kill_builtin(char **args) {
 
             //node was not found!
             if (currentNode < number || number <= ZERO) {
-                printError("I am sorry, but that job does not exist.\n");
+                fprintf(stderr, "I am sorry, but that job does not exist.\n");
                 return FALSE;
             } else {
                 pid_t pid = currentJob->pgid;
@@ -798,13 +794,13 @@ int kill_builtin(char **args) {
 
             //node was not found!
             if (currentNode < number || number <= 0) {
-                printError("I am sorry, but that job does not exist.\n");
+                fprintf(stderr, "I am sorry, but that job does not exist.\n");
                 return FALSE;
             } else {
                 pid_t pid = currentJob->pgid;
                 printf("%d pid\n", pid);
                 if (kill(pid, SIGTERM) == ERROR) {
-                    printError("I am sorry, an error occurred with kill.\n");
+                    fprintf(stderr, "I am sorry, an error occurred with kill.\n");
                     return FALSE; //error occurred
                 } else {
                     /* sig proc mask this */
